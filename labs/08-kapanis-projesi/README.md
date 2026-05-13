@@ -24,8 +24,8 @@ uygulaması ile şunları içeren bir sistem ayağa kalkar:
 
 ```bash
 cd ../../playground-app
-docker build -t k8s-playground:1.0.0 .
-minikube image load k8s-playground:1.0.0
+docker build -t docker.io/cahityusuf/k8s-playground:v1.0.1 .
+minikube image load docker.io/cahityusuf/k8s-playground:v1.0.1
 kubectl apply -f k8s/
 kubectl -n playground get all
 kubectl -n playground port-forward svc/playground 8080:80
@@ -39,7 +39,7 @@ Kursiyerlerden 30 dakika içinde bulmaları beklenir. Tanı için
 
 ### Hata 1 — Yanlış image tag
 
-`k8s/04-deployment.yaml` içinde `image: k8s-playground:1.0.0` → `k8s-playground:9.9.9`.
+`k8s/04-deployment.yaml` içinde `image: docker.io/cahityusuf/k8s-playground:v1.0.1` → `k8s-playground:9.9.9`.
 
 **Beklenen tanı:** ImagePullBackOff. `kubectl describe pod` Events bölümünde
 "Failed to pull image" görünür.

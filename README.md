@@ -61,8 +61,8 @@ kubectl get pods -o wide
 
 ```bash
 cd playground-app
-docker build -t k8s-playground:1.0.0 .
-minikube image load k8s-playground:1.0.0
+docker build -t docker.io/cahityusuf/k8s-playground:v1.0.1 .
+minikube image load docker.io/cahityusuf/k8s-playground:v1.0.1
 kubectl apply -f k8s/
 kubectl -n playground port-forward svc/playground 8080:80
 # tarayıcı: http://localhost:8080
