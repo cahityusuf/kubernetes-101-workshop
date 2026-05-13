@@ -1,0 +1,27 @@
+# .NET
+**/bin/
+**/obj/
+*.user
+*.suo
+
+# IDE
+.vs/
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Python (build script'leri için)
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Geçici PDF üretim çıktıları
+build/*.pdf
+
+# Genel
+*.log
+.env

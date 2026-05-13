@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  APP_MODE: prod
+  LOG_LEVEL: info
+  GREETING: "Merhaba Kubernetes!"
+  banner.txt: |
+    ===============================================
+    ConfigMap'ten gelen banner dosyası.
+    Bu dosyayı kubectl edit configmap ile değiştirip
+    Pod'un içinde tekrar okuyunca anında tazelenmiş olmalı.
+    ===============================================

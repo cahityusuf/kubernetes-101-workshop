@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo
+  labels:
+    app: demo
+spec:
+  containers:
+  - name: app
+    image: busybox:1.36
+    command: ["sh", "-c", "sleep 3600"]
+    envFrom:
+    - configMapRef:
+        name: app-config
+    - secretRef:
+        name: app-secret
+    env:
+    - name: DB_PWD_TEK
+      valueFrom:
+        secretKeyRef:
+          name: app-secret
+          key: DB_PASSWORD
+    volumeMounts:
+    - name: config-files
+      mountPath: /etc/config
+      readOnly: true
+  volumes:
+  - name: config-files
+    configMap:
+      name: app-config
+      items:
+      - key: banner.txt
+        path: banner.txt
