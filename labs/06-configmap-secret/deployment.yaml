@@ -1,0 +1,79 @@
+# =============================================================================
+# LAB 06 — CONFIGMAP & SECRET
+# =============================================================================
+# Konu: Pod'a ayar enjekte etmenin iki ana yolu:
+#   1) envFrom → ConfigMap/Secret içindeki tüm anahtarlar ENV olarak iner.
+#      ENV bir kez okunur; ConfigMap güncellenirse Pod restart edilmedikçe
+#      uygulama ESKİ değeri görmeye devam eder.
+#   2) Volume mount → her anahtar bir DOSYA olarak görünür. kubelet, dosyaları
+#      ~30–60 sn'de TAZELER; uygulama dosyayı yeniden okuduğunda yeni değeri
+#      alır. Bu davranışı playground'un /Config sayfasından canlı izleyin.
+#
+# Uygula (sıra önemli — Deployment cm/secret'a referans verir):
+#   kubectl apply -f configmap.yaml
+#   kubectl apply -f secret.yaml
+#   kubectl apply -f deployment.yaml
+#
+# Gözlemle:
+#   kubectl port-forward deploy/cm-secret-demo 8080:8080
+#   # http://localhost:8080/Env    → envFrom'dan gelen değerler
+#   # http://localhost:8080/Config → /etc/k8s-config & /etc/k8s-secret dosyaları
+#
+# Canlı güncelleme testi:
+#   kubectl edit configmap app-config        # GREETING değerini değiştir
+#   # /Config sayfasını 30-60 sn sonra yenile → yeni içerik görünür (volume mount)
+#   # /Env  sayfasında ESKİ değer durur (env restart ister)
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cm-secret-demo
+  labels:
+    app: cm-secret-demo
+    lab: "06-configmap-secret"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cm-secret-demo
+  template:
+    metadata:
+      labels:
+        app: cm-secret-demo
+    spec:
+      containers:
+        - name: web
+          image: docker.io/cahityusuf/k8s-playground:v1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+
+          # --- ENV: tek tek değer + envFrom ile toplu enjeksiyon -------------
+          env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+            - name: APP_VERSION
+              value: "1.0.0-lab04"
+          envFrom:
+            - configMapRef: { name: app-config }   # 04-configmap-secret/configmap.yaml
+            - secretRef:    { name: app-secret }   # 04-configmap-secret/secret.yaml
+
+          # --- VOLUME: ConfigMap + Secret dosya olarak -----------------------
+          # Uygulama /etc/k8s-config ve /etc/k8s-secret yollarını okur (default).
+          volumeMounts:
+            - name: cm-vol
+              mountPath: /etc/k8s-config
+              readOnly: true
+            - name: sec-vol
+              mountPath: /etc/k8s-secret
+              readOnly: true
+
+      volumes:
+        - name: cm-vol
+          configMap:
+            name: app-config
+        - name: sec-vol
+          secret:
+            secretName: app-secret
+            defaultMode: 0400              # sadece sahibi okur (rw,r,r olmasın)

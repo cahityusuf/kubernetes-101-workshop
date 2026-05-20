@@ -1,0 +1,95 @@
+# =============================================================================
+# LAB 08 — PROBES (Startup / Readiness / Liveness)
+# =============================================================================
+# Konu: Kubernetes 3 farklı probe tanır:
+#   1) startupProbe   → uygulamanın "açılış" süresini diğer probelardan ayırır.
+#                       Başarılı olana kadar liveness/readiness çalışmaz.
+#   2) readinessProbe → Pod trafik almaya hazır mı? FAIL → Service.endpoints
+#                       listesinden düşer, ama Pod ÖLDÜRÜLMEZ.
+#   3) livenessProbe  → uygulama yaşıyor mu? FAIL → kubelet Pod'u yeniden başlatır.
+#
+# Playground bu üçünü canlı test etmek için 3 endpoint sunar:
+#   GET /healthz/startup   /healthz/ready   /healthz/live
+# Ek olarak Chaos sayfasında "Hang" düğmesi liveness'ı bilinçli timeout'a sokar.
+#
+# Uygula:
+#   kubectl apply -f deployment.yaml
+#   kubectl apply -f service.yaml
+#
+# 1) READINESS demosu:
+#   kubectl port-forward deploy/probe-demo 8080:8080
+#   # http://localhost:8080/Health → "Set NOT READY"
+#   # Başka terminal:
+#   kubectl get endpoints probe-demo -o wide
+#   # Pod IP'sinin endpoint listesinden düştüğünü görürsünüz.
+#
+# 2) LIVENESS demosu (Pod restart edilir):
+#   # http://localhost:8080/Chaos → "Hang" → 30 sn
+#   kubectl get pod -l app=probe-demo -w        # RESTARTS artar
+#   kubectl describe pod -l app=probe-demo      # 'Liveness probe failed' event'i
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: probe-demo
+  labels:
+    app: probe-demo
+    lab: "08-probes"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: probe-demo
+  template:
+    metadata:
+      labels:
+        app: probe-demo
+    spec:
+      containers:
+        - name: web
+          image: docker.io/cahityusuf/k8s-playground:v1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+
+          # --- 1) STARTUP PROBE ---------------------------------------------
+          # Yavaş başlayan uygulamalar için "ekstra zaman" tampon. Bu süre
+          # boyunca liveness/readiness başlatılmaz. Burada en fazla 30*2=60sn.
+          startupProbe:
+            httpGet: { path: /healthz/startup, port: http }
+            failureThreshold: 30
+            periodSeconds: 2
+
+          # --- 2) READINESS PROBE -------------------------------------------
+          # FAIL → Pod Service endpoint listesinden DÜŞER (öldürülmez).
+          # Playground /Health sayfasından AÇ/KAPA edebilirsiniz.
+          readinessProbe:
+            httpGet: { path: /healthz/ready, port: http }
+            periodSeconds: 5
+            failureThreshold: 2
+            successThreshold: 1
+
+          # --- 3) LIVENESS PROBE --------------------------------------------
+          # FAIL → kubelet container'ı RESTART eder.
+          # /Chaos → "Hang" ile 30 sn thread bloke edip canlı tetikleyin.
+          livenessProbe:
+            httpGet: { path: /healthz/live, port: http }
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 2
+
+          # Probe başarısız olduğunda hızlı kapanış için graceful exit'i de
+          # destekleyelim (preStop hook + terminationGracePeriodSeconds).
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 5"]
+
+          env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+            - name: APP_VERSION
+              value: "1.0.0-lab06"
+
+      terminationGracePeriodSeconds: 30

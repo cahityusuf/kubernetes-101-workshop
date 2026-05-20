@@ -1,0 +1,78 @@
+# =============================================================================
+# LAB 01 — NAMESPACE
+# =============================================================================
+# Konu: Namespace, küme kaynaklarını mantıksal olarak izole eder. Aynı isimde
+# nesneler farklı namespace'lerde sorunsuz koşar; RBAC, ResourceQuota,
+# NetworkPolicy gibi kısıtlamalar namespace seviyesinde uygulanır.
+#
+# Bu manifest:
+#   - 'lab-namespace' adında bir namespace oluşturur
+#   - Aynı namespace içine bir Deployment + Service yerleştirir
+#   - Playground'un /Info sayfasında POD_NAMESPACE değerinin 'lab-namespace'
+#     olduğunu canlı doğrularsınız.
+#
+# Uygula:
+#   kubectl apply -f deployment.yaml
+#
+# Gözlemle:
+#   kubectl get all -n lab-namespace
+#   kubectl -n lab-namespace exec deploy/ns-demo -- env | grep POD_NAMESPACE
+#   kubectl -n lab-namespace port-forward svc/ns-demo 8080:80
+#   # http://localhost:8080/Info → Pod.Namespace = "lab-namespace"
+#
+# Namespace'i temizle (içindeki HER ŞEY silinir):
+#   kubectl delete namespace lab-namespace
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: lab-namespace
+  labels:
+    lab: "namespace"
+    purpose: "ders"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ns-demo
+  namespace: lab-namespace
+  labels:
+    app: ns-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ns-demo
+  template:
+    metadata:
+      labels:
+        app: ns-demo
+    spec:
+      containers:
+        - name: web
+          image: docker.io/cahityusuf/k8s-playground:v1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { name: http, containerPort: 8080 }
+          readinessProbe:
+            httpGet: { path: /healthz/ready, port: http }
+            periodSeconds: 5
+          env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+            - name: POD_NAMESPACE
+              valueFrom: { fieldRef: { fieldPath: metadata.namespace } }
+            - name: APP_VERSION
+              value: "1.0.0-namespace"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ns-demo
+  namespace: lab-namespace
+spec:
+  type: ClusterIP
+  selector:
+    app: ns-demo
+  ports:
+    - { name: http, port: 80, targetPort: http, protocol: TCP }

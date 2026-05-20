@@ -1,0 +1,66 @@
+# =============================================================================
+# LAB 04 — DEPLOYMENT (Rolling Update / Rollback)
+# =============================================================================
+# Konu: Deployment'ın güncelleme stratejisi ve rollout/rollback yetenekleri.
+#   - strategy.type: RollingUpdate — sıfır kesintiyle replikalar tek tek değişir
+#   - maxSurge / maxUnavailable — geçici kapasite/kullanılabilirlik tampon ayarı
+#   - revisionHistoryLimit — geri sarılabilen revision sayısı
+#   - minReadySeconds — yeni Pod'un "ready" sayılması için ekstra bekleme
+#
+# Uygula:
+#   kubectl apply -f deployment.yaml
+#   kubectl rollout status deploy/playground-deploy
+#
+# Imajı GÜNCELLE (rolling update tetiklenir):
+#   kubectl set image deploy/playground-deploy web=docker.io/cahityusuf/k8s-playground:latest
+#   kubectl rollout status deploy/playground-deploy
+#   kubectl get rs -l app=playground-deploy
+#
+# Geçmişi gör + rollback:
+#   kubectl rollout history deploy/playground-deploy
+#   kubectl rollout undo deploy/playground-deploy
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: playground-deploy
+  labels:
+    app: playground-deploy
+    lab: "04-deployment"
+  annotations:
+    kubernetes.io/change-cause: "v1.0.0 ilk deploy"
+spec:
+  replicas: 3
+  revisionHistoryLimit: 5
+  minReadySeconds: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: playground-deploy
+  template:
+    metadata:
+      labels:
+        app: playground-deploy
+        version: v1
+    spec:
+      containers:
+        - name: web
+          image: docker.io/cahityusuf/k8s-playground:v1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          # Readiness probe olmasaydı rolling update "yalandan ready" Pod'ları
+          # öne çıkarırdı; bu sayede sadece gerçekten yanıt veren Pod'lar trafik alır.
+          readinessProbe:
+            httpGet: { path: /healthz/ready, port: http }
+            periodSeconds: 5
+          env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+            - name: APP_VERSION
+              value: "1.0.0-lab02"

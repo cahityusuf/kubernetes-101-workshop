@@ -1,0 +1,235 @@
+# =============================================================================
+# LAB 12 — KAPANIŞ PROJESİ
+# =============================================================================
+# Konu: Kursta öğrenilen TÜM kavramları tek bir manifest setinde birleştirir.
+# Bu dosya bilerek "self-contained"; tek bir 'kubectl apply -f deployment.yaml'
+# komutu ile namespace + cm + secret + pvc + deployment + service + ingress + hpa
+# birden uygulanır.
+#
+# İçerdiği kavramlar:
+#   - Namespace izolasyonu                (kind: Namespace)
+#   - ConfigMap (envFrom + volume)        (kind: ConfigMap)
+#   - Secret (envFrom + volume)           (kind: Secret)
+#   - PVC kalıcı depolama                 (kind: PersistentVolumeClaim)
+#   - Deployment: init container, 3 probe, Downward API, envFrom,
+#     resources.requests/limits, lifecycle preStop, securityContext
+#   - Service ClusterIP                   (kind: Service)
+#   - Ingress NGINX                       (kind: Ingress)
+#   - HPA (CPU autoscaling)               (kind: HorizontalPodAutoscaler)
+#
+# Uygula:
+#   kubectl apply -f deployment.yaml
+#   kubectl -n playground get all,cm,secret,pvc,ingress,hpa
+#
+# Erişim:
+#   kubectl -n playground port-forward svc/playground 8080:80
+#   # http://localhost:8080
+#   # ya da /etc/hosts'a "<INGRESS_IP> playground.local" ekleyip http://playground.local
+#
+# Temizlik:
+#   kubectl delete namespace playground
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: playground
+  labels:
+    lab: "12-kapanis"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: playground-config
+  namespace: playground
+data:
+  APP_DISPLAY_NAME: "Kapanis Projesi"
+  APP_MODE: "prod"
+  LOG_LEVEL: "info"
+  banner.txt: |
+    Bu kapanis projesi notudur.
+    'kubectl edit cm playground-config -n playground' ile degistirip
+    /Config sayfasinda canli tazelenmesini izleyin.
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: playground-secret
+  namespace: playground
+type: Opaque
+stringData:
+  DB_PASSWORD: "S3cret!Final"
+  API_TOKEN: "tok_final_demo_abc123"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: playground-data
+  namespace: playground
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: playground
+  namespace: playground
+  labels:
+    app: playground
+spec:
+  replicas: 1                     # PVC RWO + Recreate
+  strategy: { type: Recreate }
+  selector:
+    matchLabels:
+      app: playground
+  template:
+    metadata:
+      labels:
+        app: playground
+        version: v1
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+      initContainers:
+        - name: init-marker
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "init container calisti"     >  /data/init-marker.txt
+              echo "tarih = $(date -u +%FT%TZ)" >> /data/init-marker.txt
+          volumeMounts:
+            - { name: data, mountPath: /data }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+      containers:
+        - name: web
+          image: docker.io/cahityusuf/k8s-playground:v1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { name: http, containerPort: 8080 }
+
+          startupProbe:
+            httpGet: { path: /healthz/startup, port: http }
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            httpGet: { path: /healthz/ready, port: http }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /healthz/live, port: http }
+            periodSeconds: 10
+            failureThreshold: 3
+
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits:   { cpu: "500m", memory: "256Mi" }
+
+          env:
+            - name: APP_VERSION
+              value: "1.0.0-final"
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+            - name: POD_NAMESPACE
+              valueFrom: { fieldRef: { fieldPath: metadata.namespace } }
+            - name: POD_IP
+              valueFrom: { fieldRef: { fieldPath: status.podIP } }
+            - name: NODE_NAME
+              valueFrom: { fieldRef: { fieldPath: spec.nodeName } }
+          envFrom:
+            - configMapRef: { name: playground-config }
+            - secretRef:    { name: playground-secret }
+
+          volumeMounts:
+            - { name: cfg,  mountPath: /etc/k8s-config, readOnly: true }
+            - { name: sec,  mountPath: /etc/k8s-secret, readOnly: true }
+            - { name: data, mountPath: /data }
+            - { name: tmp,  mountPath: /tmp }
+
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 5"]
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+
+      volumes:
+        - name: cfg
+          configMap: { name: playground-config }
+        - name: sec
+          secret:
+            secretName: playground-secret
+            defaultMode: 0400
+        - name: data
+          persistentVolumeClaim: { claimName: playground-data }
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: playground
+  namespace: playground
+  labels:
+    app: playground
+spec:
+  type: ClusterIP
+  selector:
+    app: playground
+  ports:
+    - { name: http, port: 80, targetPort: http, protocol: TCP }
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: playground
+  namespace: playground
+  annotations:
+    nginx.ingress.kubernetes.io/use-forwarded-headers: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: playground.local
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: playground
+                port: { number: 80 }
+---
+# HPA: PVC RWO + Recreate olduğu için scale-up GERÇEKLEŞMEZ; bu blok kursiyere
+# "neden HPA hareket etmiyor?" tartışmasını başlatmak için kasıtlı bırakıldı.
+# Stateless yapmak isterseniz PVC mount ve volume satırlarını kaldırın,
+# strategy'yi RollingUpdate'a alın, sonra HPA çalışır.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: playground
+  namespace: playground
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: playground
+  minReplicas: 1
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60

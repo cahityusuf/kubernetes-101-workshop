@@ -1,0 +1,61 @@
+# =============================================================================
+# LAB 05 — SERVICE
+# =============================================================================
+# Konu: Birden çok Pod'a karşı kararlı bir DNS adı + ClusterIP üreten Service.
+# Bu klasördeki service-clusterip.yaml ve service-nodeport.yaml dosyaları
+# AYNI Deployment'in (label: app=web) Pod'larını seçer.
+#
+# 'app: web' label'ı ile Service selector'ı eşleşir → Service.endpoints
+# otomatik dolar. Pod'lar arasında basit round-robin yük dağıtımı yapılır.
+#
+# Uygula:
+#   kubectl apply -f deployment.yaml
+#   kubectl apply -f service-clusterip.yaml      # cluster içi 'web' DNS adı
+#   # ya da
+#   kubectl apply -f service-nodeport.yaml       # dışarıdan NodePort ile eriş
+#
+# Gözlemle (round-robin):
+#   kubectl get endpoints web -o wide
+#   for i in 1 2 3 4 5; do
+#     kubectl run curl-$i --rm -it --restart=Never --image=curlimages/curl -- \
+#       sh -c 'curl -s http://web/Env/Single?name=POD_NAME'
+#   done
+#
+# NodePort denemesi:
+#   kubectl get svc web
+#   curl http://<NodeIP>:<NodePort>/
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  labels:
+    app: web
+    lab: "05-service"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web                # service-*.yaml selector'ı bu label'ı arar
+    spec:
+      containers:
+        - name: web
+          image: docker.io/cahityusuf/k8s-playground:v1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http        # service.targetPort: http ile aynı isim olmalı
+              containerPort: 8080
+          readinessProbe:
+            httpGet: { path: /healthz/ready, port: http }
+            periodSeconds: 5
+          env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+            - name: POD_NAMESPACE
+              valueFrom: { fieldRef: { fieldPath: metadata.namespace } }
+            - name: APP_VERSION
+              value: "1.0.0-lab03"

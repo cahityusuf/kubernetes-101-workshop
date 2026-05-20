@@ -1,0 +1,75 @@
+# =============================================================================
+# LAB 10 — RESOURCE REQUESTS & LIMITS
+# =============================================================================
+# Konu: Pod scheduling ve QoS sınıfı kararları 'resources' alanına bakar.
+#   - requests → scheduler'ın "bu Pod'a en az şu kadar yer ayır" garantisi.
+#                Node seçimi (binpacking) bunu kullanır.
+#   - limits   → kullanılabilecek MUTLAK ÜST SINIR.
+#                CPU limit aşılırsa THROTTLE (yavaşlatılır).
+#                Memory limit aşılırsa OOMKILLED (öldürülür) — recover edilemez.
+#
+# QoS sınıfları (kubectl describe pod 'QoS Class' satırı):
+#   - Guaranteed → tüm container'larda requests==limits her iki kaynak için
+#   - Burstable  → requests < limits (bu lab)
+#   - BestEffort → hiç requests/limits yok (asla kullanmayın)
+#
+# Uygula:
+#   kubectl apply -f deployment.yaml
+#   kubectl get pod -l app=resources-demo -o wide
+#   kubectl describe pod -l app=resources-demo | grep -E '(QoS|Requests|Limits)'
+#
+# OOMKILLED demosu (memory limit = 128Mi):
+#   kubectl port-forward deploy/resources-demo 8080:8080
+#   # http://localhost:8080/Stress → "Bellek ayır" → 200 MB
+#   kubectl get pod -l app=resources-demo -w
+#   # Pod 'OOMKilled' ile sonlanır, RESTARTS sayısı artar
+#   kubectl describe pod -l app=resources-demo | grep -A 2 'Last State'
+#
+# CPU THROTTLE demosu:
+#   # /Stress → 30 sn × 4 worker → CPU yakılır ama 250m limit ile kısılır
+#   kubectl top pod -l app=resources-demo   # metrics-server şart
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resources-demo
+  labels:
+    app: resources-demo
+    lab: "resources"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: resources-demo
+  template:
+    metadata:
+      labels:
+        app: resources-demo
+    spec:
+      containers:
+        - name: web
+          image: docker.io/cahityusuf/k8s-playground:v1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { name: http, containerPort: 8080 }
+
+          readinessProbe:
+            httpGet: { path: /healthz/ready, port: http }
+            periodSeconds: 5
+
+          # Bu demonun yıldızı buradaki resources bloğudur.
+          # Memory limit BİLİNÇLİ olarak DAR (128Mi) tutuldu ki kursiyer
+          # /Stress sayfasından 200 MB istediğinde OOMKilled görsün.
+          resources:
+            requests:
+              cpu: "100m"          # 0.1 core
+              memory: "64Mi"
+            limits:
+              cpu: "250m"          # /Stress CPU 'yakınca' burada throttle
+              memory: "128Mi"      # üzerine çıkılırsa OOMKilled
+
+          env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+            - name: APP_VERSION
+              value: "1.0.0-resources"

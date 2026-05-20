@@ -1,0 +1,97 @@
+# =============================================================================
+# LAB 11 — INGRESS
+# =============================================================================
+# Konu: Deployment + Service + Ingress üçlüsü. Ingress controller (genellikle
+# NGINX) dış dünyadan gelen HTTP(S) trafiği host/path eşleşmesine göre
+# uygun Service'e yönlendirir.
+#
+# Aynı klasördeki diğer dosyalar:
+#   - app-bar.yaml, test.yaml → ek backend örnekleri
+#   - ingress.yaml            → ham Ingress örneği
+# Bu dosya 'playground' uygulamasını tek başına Service + Ingress ile yayınlar.
+#
+# Uygula:
+#   kubectl apply -f deployment.yaml
+#
+# Doğrula:
+#   kubectl get deploy,svc,ingress -l app=ingress-demo
+#   kubectl get ingressclass               # 'nginx' var mı?
+#   kubectl get ingress ingress-demo -o wide   # ADDRESS kolonunda Ingress IP'si
+#
+# Test:
+#   # /etc/hosts'a ekleyin:
+#   #   <INGRESS_IP>   playground.local
+#   curl http://playground.local/healthz/live
+#   curl http://playground.local/Info
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingress-demo
+  labels:
+    app: ingress-demo
+    lab: "11-ingress"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ingress-demo
+  template:
+    metadata:
+      labels:
+        app: ingress-demo
+    spec:
+      containers:
+        - name: web
+          image: docker.io/cahityusuf/k8s-playground:v1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet: { path: /healthz/ready, port: http }
+            periodSeconds: 5
+          env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+            - name: APP_VERSION
+              value: "1.0.0-lab07"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingress-demo
+  labels:
+    app: ingress-demo
+spec:
+  type: ClusterIP
+  selector:
+    app: ingress-demo            # Deployment'taki label ile eşleşir
+  ports:
+    - name: http
+      port: 80                   # Service portu
+      targetPort: http           # container portu (named)
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-demo
+  labels:
+    app: ingress-demo
+  annotations:
+    # X-Forwarded-* başlıklarının /Network sayfasında görünmesi için
+    nginx.ingress.kubernetes.io/use-forwarded-headers: "true"
+spec:
+  ingressClassName: nginx        # 'kubectl get ingressclass' ile doğrulayın
+  rules:
+    - host: playground.local     # /etc/hosts'a Ingress IP'siyle ekleyin
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: ingress-demo
+                port:
+                  number: 80

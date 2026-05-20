@@ -1,0 +1,87 @@
+# =============================================================================
+# LAB 03 — REPLICASET
+# =============================================================================
+# Konu: ReplicaSet, "istenen Pod sayısının canlı tutulmasını" garanti eder.
+# Pratikte doğrudan kullanılmaz; Deployment'ın altında dolaylı olarak iş görür.
+# Bu lab'da ReplicaSet'i ÇIPLAK görüp Deployment ile farkını anlayacaksınız.
+#
+# ReplicaSet ile yapılabilenler:
+#   - Replica sayısını korur (Pod silinirse hemen yenisini yaratır)
+#   - 'selector' label'larıyla yönetimde tuttuğu Pod'ları bulur
+#
+# ReplicaSet'in TEK BAŞINA YAPAMADIĞI:
+#   - Rolling update / rollback (revisionHistory yok)
+#   - 'kubectl set image' ile imaj güncellemesi (Pod'lar template değişse de
+#     yeniden yaratılmaz; bu yüzden gerçek dünyada Deployment kullanılır)
+#
+# Uygula:
+#   kubectl apply -f deployment.yaml
+#   kubectl get rs,pod -l app=replicaset-demo
+#
+# Garanti testi:
+#   kubectl delete pod -l app=replicaset-demo --wait=false
+#   kubectl get pod -l app=replicaset-demo -w   # ReplicaSet anında yenisini doğurur
+#
+# Replica sayısını değiştir:
+#   kubectl scale rs/replicaset-demo --replicas=5
+#
+# Bonus: AŞAĞIDA aynı uygulamanın Deployment versiyonu da yorum içinde verildi.
+# Yorumu açıp 'kubectl apply -f deployment.yaml' tekrar uygulayarak ikisinin
+# yan yana çalışmasını izleyebilirsiniz.
+# =============================================================================
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: replicaset-demo
+  labels:
+    app: replicaset-demo
+    lab: "replicaset"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: replicaset-demo
+  template:
+    metadata:
+      labels:
+        app: replicaset-demo
+    spec:
+      containers:
+        - name: web
+          image: docker.io/cahityusuf/k8s-playground:v1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { name: http, containerPort: 8080 }
+          readinessProbe:
+            httpGet: { path: /healthz/ready, port: http }
+            periodSeconds: 5
+          env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+            - name: APP_VERSION
+              value: "1.0.0-rs"
+
+# -----------------------------------------------------------------------------
+# Karşılaştırma için: aynı uygulamanın Deployment versiyonu (gerekirse açın)
+# -----------------------------------------------------------------------------
+# ---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: deployment-demo
+#   labels:
+#     app: deployment-demo
+# spec:
+#   replicas: 2
+#   selector:
+#     matchLabels:
+#       app: deployment-demo
+#   template:
+#     metadata:
+#       labels:
+#         app: deployment-demo
+#     spec:
+#       containers:
+#         - name: web
+#           image: docker.io/cahityusuf/k8s-playground:v1.0.0
+#           ports: [{ name: http, containerPort: 8080 }]

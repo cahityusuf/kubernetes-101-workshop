@@ -1,0 +1,63 @@
+# =============================================================================
+# LAB 02 — POD
+# =============================================================================
+# Konu: Deployment'ın 'template' alanı bir Pod tanımıdır. Burada en yalın
+# hâliyle TEK Pod üreten bir Deployment görüyorsunuz. replicas: 1 olduğu için
+# Deployment → ReplicaSet → 1 adet Pod zinciri olusur.
+#
+# Uygula:
+#   kubectl apply -f deployment.yaml
+#
+# Gözlemle:
+#   kubectl get deploy,rs,pod -l app=playground-pod -o wide
+#   kubectl describe pod -l app=playground-pod
+#
+# Pod'a doğrudan eriş (Service henüz yok):
+#   kubectl port-forward deploy/playground-pod 8080:8080
+#   curl http://localhost:8080/healthz/live
+#
+# Pod'u sil — Deployment'ın yenisini otomatik üretmesini izle:
+#   kubectl delete pod -l app=playground-pod
+#   kubectl get pod -l app=playground-pod -w
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: playground-pod
+  labels:
+    app: playground-pod
+    lab: "02-pod"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: playground-pod
+  template:
+    metadata:
+      labels:
+        app: playground-pod
+    spec:
+      containers:
+        - name: web
+          image: docker.io/cahityusuf/k8s-playground:v1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          # Pod kavramının çekirdek demosu: container'a Pod adı verilince
+          # /Info sayfasında bu adı görebilirsiniz (Downward API).
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: APP_VERSION
+              value: "1.0.0-lab02"

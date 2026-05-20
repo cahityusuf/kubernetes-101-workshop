@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: dotnet-test
+  name: dotnet-test
+  namespace: cahit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dotnet-test
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: dotnet-test
+    spec:
+      containers:
+      - image: cahityusuf/k8s-playground:v1.0.1
+        name: k8s-playground
+        resources: {}

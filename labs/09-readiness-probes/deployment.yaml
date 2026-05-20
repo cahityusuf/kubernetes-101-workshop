@@ -1,0 +1,73 @@
+# =============================================================================
+# LAB 09 — READINESS PROBES (odaklı demo)
+# =============================================================================
+# Konu: Readiness probe SADECE TRAFİĞİ kontrol eder, Pod'u öldürmez.
+# FAIL → Service.endpoints listesinden düşer → Service üzerinden gelen
+#         istekler artık bu Pod'a gitmez.
+# OK   → Pod listeye geri eklenir.
+#
+# Playground'un /Health sayfasından AÇ/KAPA edebilirsiniz — Pod öldürülmez
+# ama Service trafiği anında kesilir/açılır.
+#
+# Uygula:
+#   kubectl apply -f deployment.yaml
+#
+# Eş zamanlı 2 terminalde:
+#   # Terminal A — endpoint listesini izle:
+#   kubectl get endpoints readiness-demo -o wide -w
+#
+#   # Terminal B — uygulamaya gir, readiness'i kapat:
+#   kubectl port-forward deploy/readiness-demo 8080:8080
+#   # http://localhost:8080/Health → "Set NOT READY"
+#
+# Bu sırada Terminal A'da Pod IP'sinin endpoint listesinden düştüğünü
+# (Pod hâlâ Running) göreceksiniz. "Set READY" deyince geri eklenir.
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: readiness-demo
+  labels:
+    app: readiness-demo
+    lab: "readiness-probes"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: readiness-demo
+  template:
+    metadata:
+      labels:
+        app: readiness-demo
+    spec:
+      containers:
+        - name: web
+          image: docker.io/cahityusuf/k8s-playground:v1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { name: http, containerPort: 8080 }
+
+          # Sadece readiness'a odak — startup ve liveness BİLİNÇLİ tanımlanmadı
+          # ki kursiyer readiness'in TEK BAŞINA ne yaptığını net görsün.
+          readinessProbe:
+            httpGet: { path: /healthz/ready, port: http }
+            periodSeconds: 3
+            failureThreshold: 1     # tek FAIL'de hemen endpoint listeden düş
+            successThreshold: 1     # tek OK ile hemen geri ekle
+
+          env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+            - name: APP_VERSION
+              value: "1.0.0-readiness"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: readiness-demo
+spec:
+  type: ClusterIP
+  selector:
+    app: readiness-demo
+  ports:
+    - { name: http, port: 80, targetPort: http }
