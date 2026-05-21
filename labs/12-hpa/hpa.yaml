@@ -1,0 +1,74 @@
+# =============================================================================
+# LAB 12 — HORIZONTAL POD AUTOSCALER (HPA) — AUTOSCALER MANIFEST
+# =============================================================================
+# Bu dosya 'deployment.yaml' uygulandıktan SONRA uygulanır:
+#   kubectl apply -f hpa.yaml
+#
+# HPA, kontrol döngüsü ile her 15 saniyede bir 'metrics-server'dan Pod CPU/memory
+# kullanımını okur, ortalamayı target ile karşılaştırır ve gerekirse replika
+# sayısını ayarlar.
+#
+# HPA hesabı (CPU için):
+#   utilization = ( avg(pod_cpu_usage_mCPU) / container_request_cpu_mCPU ) * 100
+#   desired_replicas = ceil( current_replicas * utilization / target )
+#
+# Bu lab için somut hesap:
+#   - request: 100m, target: 60% → eşik = 60m ortalama CPU
+#   - 2 Pod × 120m üretim = 240m toplam → 240/60 = 4 Pod gerekli
+#   - 4 Pod yetmezse HPA artırmaya devam eder (max 8'e kadar)
+#
+# Davranış ayarları (behavior):
+#   - scaleUp.stabilizationWindow: 0   → derhâl ölçeklensin (eğitimde hızlı görelim)
+#   - scaleUp.policies: en fazla 2 Pod / 30 sn → fırlamayı sınırla
+#   - scaleDown.stabilizationWindow: 120s → flapping (yukarı-aşağı oynama) engelle
+#   - scaleDown.policies: 1 Pod / 60 sn → yavaş in (kullanıcı isteği yine gelebilir)
+#
+# Önşart:
+#   kubectl top pod -n hpa-demo   # 'Metrics API not available' alıyorsanız:
+#   # README.md → "Adım 1: metrics-server kurulumu"na bakın
+# =============================================================================
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hpa-demo
+  namespace: hpa-demo
+  labels:
+    app: hpa-demo
+    lab: "12-hpa"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: hpa-demo
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    # CPU üzerinden ölçeklendirme — primary metrik
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+    # Memory'yi de izle (yüksek bellek tüketiminde de scale up)
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleUp:
+      # 0 = anında ölçeklen, eğitim için ideal. Üretimde 30-60 sn önerilir.
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Pods
+          value: 2          # her 30 sn'de en fazla 2 Pod ekle
+          periodSeconds: 30
+    scaleDown:
+      # 2 dk boyunca son tepe değer baz alınır; flapping olmaz
+      stabilizationWindowSeconds: 120
+      policies:
+        - type: Pods
+          value: 1          # her 60 sn'de en fazla 1 Pod düş
+          periodSeconds: 60

@@ -1,5 +1,5 @@
 # =============================================================================
-# LAB 12 — KAPANIŞ PROJESİ
+# LAB 13 — KAPANIŞ PROJESİ
 # =============================================================================
 # Konu: Kursta öğrenilen TÜM kavramları tek bir manifest setinde birleştirir.
 # Bu dosya bilerek "self-contained"; tek bir 'kubectl apply -f deployment.yaml'
@@ -34,7 +34,7 @@ kind: Namespace
 metadata:
   name: playground
   labels:
-    lab: "12-kapanis"
+    lab: "13-kapanis"
 ---
 apiVersion: v1
 kind: ConfigMap
