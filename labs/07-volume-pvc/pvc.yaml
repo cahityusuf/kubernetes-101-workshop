@@ -8,5 +8,4 @@ spec:
   resources:
     requests:
       storage: 1Gi
-  # Minikube'de varsayılan SC 'standard'dır
-  # storageClassName: standard
+  storageClassName: local-path

@@ -6,7 +6,6 @@ metadata:
     app: demo
 spec:
   restartPolicy: Always
-  terminationGracePeriodSeconds: 30
   containers:
   - name: nginx
     image: nginx:latest

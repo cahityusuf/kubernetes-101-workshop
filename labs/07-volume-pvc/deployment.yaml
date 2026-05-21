@@ -43,8 +43,6 @@ metadata:
     lab: "07-volume-pvc"
 spec:
   replicas: 1
-  strategy:
-    type: Recreate              # RWO PVC ile uyumlu
   selector:
     matchLabels:
       app: pvc-demo
@@ -60,24 +58,12 @@ spec:
           ports:
             - name: http
               containerPort: 8080
-          readinessProbe:
-            httpGet: { path: /healthz/ready, port: http }
-            periodSeconds: 5
-          env:
-            - name: POD_NAME
-              valueFrom: { fieldRef: { fieldPath: metadata.name } }
-            - name: APP_VERSION
-              value: "1.0.0-lab05"
 
           volumeMounts:
             - name: data           # PVC — kalıcı
               mountPath: /data
-            - name: scratch        # emptyDir — geçici
-              mountPath: /scratch
 
       volumes:
         - name: data
           persistentVolumeClaim:
             claimName: data        # 05-volume-pvc/pvc.yaml içindeki PVC adı
-        - name: scratch
-          emptyDir: {}

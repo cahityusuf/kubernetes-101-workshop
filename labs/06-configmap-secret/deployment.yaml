@@ -50,30 +50,14 @@ spec:
               containerPort: 8080
 
           # --- ENV: tek tek değer + envFrom ile toplu enjeksiyon -------------
-          env:
-            - name: POD_NAME
-              valueFrom: { fieldRef: { fieldPath: metadata.name } }
-            - name: APP_VERSION
-              value: "1.0.0-lab04"
-          envFrom:
-            - configMapRef: { name: app-config }   # 04-configmap-secret/configmap.yaml
-            - secretRef:    { name: app-secret }   # 04-configmap-secret/secret.yaml
-
           # --- VOLUME: ConfigMap + Secret dosya olarak -----------------------
           # Uygulama /etc/k8s-config ve /etc/k8s-secret yollarını okur (default).
           volumeMounts:
             - name: cm-vol
               mountPath: /etc/k8s-config
               readOnly: true
-            - name: sec-vol
-              mountPath: /etc/k8s-secret
-              readOnly: true
 
       volumes:
         - name: cm-vol
           configMap:
-            name: app-config
-        - name: sec-vol
-          secret:
-            secretName: app-secret
-            defaultMode: 0400              # sadece sahibi okur (rw,r,r olmasın)
+            name: app-config             # sadece sahibi okur (rw,r,r olmasın)
