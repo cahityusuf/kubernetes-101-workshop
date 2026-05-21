@@ -2,14 +2,14 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: featureflag
-  name: featureflag
+    app: k8s-playground
+  name: k8s-playground
   namespace: cahit
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: featureflag
+      app: k8s-playground
   strategy:
     rollingUpdate:
       maxSurge: 25%
@@ -18,20 +18,20 @@ spec:
   template:
     metadata:
       labels:
-        app: featureflag
+        app: k8s-playground
     spec:
       volumes:
         # Node üzerindeki dizin; pod hangi node'da çalışıyorsa o node'un bu path'i kullanılır
         - name: logs
           hostPath:
-            path: /var/log/featureflag
+            path: /var/log/data
             type: DirectoryOrCreate  # Yoksa node'da oluşturulur
       containers:
-      - image: docker.io/cahityusuf/featureflag-turksat:v2
+      - image: docker.io/cahityusuf/k8s-playground:v1.0.0
         imagePullPolicy: IfNotPresent
-        name: featureflag-turksat
+        name: k8s-playground
         resources: {}
         volumeMounts:
           # Uygulamanın "logs" yazdığı dizin (gerekirse /app/logs veya working dir'e göre değiştir)
           - name: logs
-            mountPath: /app/logs
+            mountPath: /data
