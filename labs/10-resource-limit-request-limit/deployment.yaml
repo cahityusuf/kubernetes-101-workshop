@@ -53,23 +53,13 @@ spec:
           ports:
             - { name: http, containerPort: 8080 }
 
-          readinessProbe:
-            httpGet: { path: /healthz/ready, port: http }
-            periodSeconds: 5
-
           # Bu demonun yıldızı buradaki resources bloğudur.
           # Memory limit BİLİNÇLİ olarak DAR (128Mi) tutuldu ki kursiyer
           # /Stress sayfasından 200 MB istediğinde OOMKilled görsün.
           resources:
             requests:
               cpu: "100m"          # 0.1 core
-              memory: "64Mi"
+              memory: "4Mi"
             limits:
               cpu: "250m"          # /Stress CPU 'yakınca' burada throttle
-              memory: "128Mi"      # üzerine çıkılırsa OOMKilled
-
-          env:
-            - name: POD_NAME
-              valueFrom: { fieldRef: { fieldPath: metadata.name } }
-            - name: APP_VERSION
-              value: "1.0.0-resources"
+              memory: "8Mi"      # üzerine çıkılırsa OOMKilled

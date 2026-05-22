@@ -2,7 +2,7 @@
   kind: Ingress
   metadata:
     name: k8s-playground-ingressss
-    namespace: cahit
+    namespace: svc-test
   spec:
     ingressClassName: nginx
     rules:
@@ -12,7 +12,7 @@
             - pathType: Prefix
               backend:
                 service:
-                  name: dotnet-test
+                  name: k8s-test
                   port:
-                    number: 8091
+                    number: 80
               path: /

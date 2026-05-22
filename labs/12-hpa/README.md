@@ -22,13 +22,77 @@ Kursiyer:
 
 ## HPA hesabı (özet)
 
+### Formül
+
+Kubernetes HPA controller'ının kullandığı **resmi formül**:
+
 ```
-utilization (%) = ( avg(pod_cpu_kullanımı) / container.request.cpu ) × 100
-desired_replicas = ceil( current_replicas × utilization / target )
+desiredReplicas = ⌈ currentReplicas × ( currentMetricValue / desiredMetricValue ) ⌉
 ```
 
-Bu lab'da: `request=100m`, `target=60%` → ortalama 60m CPU eşiği.
-2 Pod × 120m = 240m → `240/60 = 4` Pod gerekir. Yetmezse HPA artırmaya devam eder (max 8).
+CPU `averageUtilization` metriği için açılımı:
+
+```
+utilization (%)  = ( avg(pod_cpu_kullanımı) / container.requests.cpu ) × 100
+desiredReplicas  = ⌈ currentReplicas × ( utilization / targetUtilization ) ⌉
+```
+
+> `⌈ ⌉` = yukarı yuvarlama (`ceil`). Sonuç her zaman `[minReplicas, maxReplicas]` aralığına **kelepçelenir** (clamp).
+> **Tolerance** varsayılan **±%10**: oran `0.9 – 1.1` arasındaysa HPA hiçbir aksiyon almaz (flapping önleme).
+> `resources.requests.cpu` **tanımlı değilse** HPA yüzde hesaplayamaz → `TARGETS: <unknown>/60%`.
+
+### Bu lab'ın parametreleri
+
+| Parametre | Değer |
+|---|---|
+| `resources.requests.cpu` | `100m` (= 0.1 core) |
+| `target` (`averageUtilization`) | `%60` → Pod başına ortalama **60m** CPU eşiği |
+| `minReplicas` / `maxReplicas` | `2` / `8` |
+| Başlangıç `replicas` | `2` |
+
+### Örnek hesaplama — Scale-UP
+
+**T+0** — Stress endpoint tetiklendi, **her Pod 120m CPU** yakıyor (2 Pod var):
+
+```
+utilization     = (120m / 100m) × 100 = %120
+oran            = 120 / 60 = 2.0     (tolerance ±%10 dışında → aksiyon)
+desiredReplicas = ⌈ 2 × 2.0 ⌉ = ⌈ 4 ⌉ = 4
+```
+
+→ HPA replicas: **2 → 4**.
+
+**T+30 sn** — 4 Pod var, yük dağıldı ama hâlâ yüksek; ortalama **107m**:
+
+```
+utilization     = (107m / 100m) × 100 = %107
+oran            = 107 / 60 ≈ 1.78
+desiredReplicas = ⌈ 4 × 1.78 ⌉ = ⌈ 7.13 ⌉ = 8   (maxReplicas'a kelepçelendi)
+```
+
+→ HPA replicas: **4 → 6 → 8** (her tur `behavior.scaleUp.policies` ile sınırlı).
+
+### Örnek hesaplama — Scale-DOWN
+
+**T+0** — Yük durduruldu, 8 Pod var, ortalama **1m** kullanım:
+
+```
+utilization     = (1m / 100m) × 100 = %1
+oran            = 1 / 60 ≈ 0.017
+desiredReplicas = ⌈ 8 × 0.017 ⌉ = ⌈ 0.13 ⌉ = 1   →   minReplicas=2 kelepçesi devrede
+```
+
+→ Teorik hedef 1, fakat `minReplicas=2` kelepçesi devreye girer. Üstüne `behavior.scaleDown.stabilizationWindowSeconds: 120` ve `policies` (60 sn'de 1 Pod) nedeniyle gerçek iniş **adım adım**: `8 → 7 → 6 → … → 2`.
+
+### Tolerance sınırı — aksiyon yok örneği
+
+3 Pod var, ortalama **62m** kullanım:
+
+```
+utilization     = (62m / 100m) × 100 = %62
+oran            = 62 / 60 ≈ 1.033     (|1.033 − 1| = 0.033 < 0.10 → tolerance içinde)
+desiredReplicas = currentReplicas     (HPA hiçbir şey yapmaz)
+```
 
 ---
 
