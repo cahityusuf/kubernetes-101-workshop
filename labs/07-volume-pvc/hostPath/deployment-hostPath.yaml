@@ -1,0 +1,138 @@
+# =============================================================================
+# LAB 07 — hostPath VOLUME ÖRNEĞİ
+# =============================================================================
+# Konu:
+#   hostPath, çalıştığı NODE üzerindeki bir dizini Pod'a mount eder.
+#   - Pod silinip yeniden ayağa kalksa bile AYNI node'da çalışırsa veri durur.
+#   - Pod farklı bir node'a scheduled olursa o node'da o dizin BOŞTUR
+#     (veya hiç yoktur) → veri "kayıp" gibi görünür.
+#   - Bu yüzden hostPath, üretimde tek-node demolar / DaemonSet senaryoları
+#     dışında önerilmez. Kalıcı + portable depolama için PV/PVC kullanın.
+#
+# Bu örnekte:
+#   - replicas: 1
+#   - strategy: Recreate  (aynı hostPath'i iki Pod aynı anda yazmasın diye)
+#   - nodeSelector: kubernetes.io/hostname=node1
+#       → Pod her zaman node1 üzerinde çalışsın; demoda "veri korunuyor"
+#         davranışını tutarlı görebilmek için.
+#   - hostPath.type: DirectoryOrCreate
+#       → Dizin yoksa kubelet oluşturur. Path: /mnt/k8s-playground/hostpath
+#
+# UYARI (güvenlik):
+#   hostPath, node'un dosya sistemine doğrudan erişim verdiği için
+#   PodSecurityStandard "restricted" profili tarafından engellenir.
+#   Demoda namespace üzerinde "privileged" veya "baseline" PSA olmalı.
+#
+# Uygula:
+#   kubectl apply -f deployment-hostPath.yaml
+#
+# Test akışı:
+#   1) Pod hangi node'da? (nodeSelector zaten node1)
+#      kubectl -n cahit get pod -l app=hostpath-demo -o wide
+#
+#   2) Uygulamadan dosya yükle:
+#      kubectl -n cahit port-forward deploy/hostpath-demo 8080:8080
+#      # http://localhost:8080/Storage → "Dosya yükle"
+#
+#   3) Yüklenen dosyayı container içinde gör:
+#      kubectl -n cahit exec deploy/hostpath-demo -- ls -la /data/uploads
+#
+#   4) Node üzerinde (SSH ile node1'e bağlanıp) AYNI dosyayı gör:
+#      ssh root@<node1-ip> "ls -la /mnt/k8s-playground/hostpath/uploads"
+#
+#   5) Pod'u sil → yeni Pod gelir (aynı node'a düşer):
+#      kubectl -n cahit delete pod -l app=hostpath-demo
+#      kubectl -n cahit get pod -l app=hostpath-demo -w
+#      kubectl -n cahit exec deploy/hostpath-demo -- ls -la /data/uploads
+#      → Dosya hâlâ orada.
+#
+#   6) "Veri kaybı" senaryosunu görmek için nodeSelector'ı node2'ye çevir:
+#      kubectl -n cahit patch deploy hostpath-demo --type=merge \
+#        -p '{"spec":{"template":{"spec":{"nodeSelector":{"kubernetes.io/hostname":"node2"}}}}}'
+#      kubectl -n cahit exec deploy/hostpath-demo -- ls -la /data/uploads
+#      → node2'de bu dizin boş → "veri kayboldu" görünür.
+#        (Aslında node1'de hâlâ duruyor ama Pod ona ulaşamıyor.)
+#
+# Temizlik:
+#   kubectl -n cahit delete -f deployment-hostPath.yaml
+#   # Node üzerindeki /mnt/k8s-playground/hostpath dizini OTOMATİK silinmez,
+#   # node'a girip elle temizleyin (DirectoryOrCreate Kubernetes'in
+#   # 'cleanup' sorumluluğu değildir).
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hostpath-demo
+  namespace: cahit
+  labels:
+    app: hostpath-demo
+    lab: "07-volume-pvc"
+    example: hostPath
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: hostpath-demo
+  template:
+    metadata:
+      labels:
+        app: hostpath-demo
+    spec:
+      # hostPath demoda hep AYNI node'a düşmesi için node sabitlemesi.
+      # Üretimde bu kalıbı DaemonSet ile birlikte düşünmek gerekir.
+      nodeSelector:
+        kubernetes.io/hostname: node1
+
+      # hostPath, root tarafından oluşturulur (UID 0). Image içindeki uygulama
+      # UID 10001 ile çalıştığı için /data altına yazabilmesi adına fsGroup
+      # ile dizinin group ownership'ini 10001'e ayarlıyoruz. Bu, Pod ayağa
+      # kalkarken kubelet tarafından chown -R yapılmasını tetikler.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        fsGroupChangePolicy: OnRootMismatch
+
+      containers:
+        - name: web
+          image: docker.io/cahityusuf/k8s-playground:v1.0.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+
+          readinessProbe:
+            httpGet: { path: /healthz/ready, port: http }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /healthz/live, port: http }
+            periodSeconds: 10
+            timeoutSeconds: 2
+
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "96Mi"
+            limits:
+              cpu: "300m"
+              memory: "192Mi"
+
+          volumeMounts:
+            - name: data
+              mountPath: /data          # uygulama burayı /Storage altında kullanıyor
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+
+      volumes:
+        - name: data
+          hostPath:
+            # Node üzerindeki gerçek dizin. Birden çok lab aynı node'u
+            # kirletmesin diye uygulama bazlı bir alt path kullanıyoruz.
+            path: /mnt/k8s-playground/hostpath
+            type: DirectoryOrCreate     # yoksa kubelet oluşturur

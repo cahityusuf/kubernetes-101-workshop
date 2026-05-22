@@ -1,0 +1,111 @@
+# =============================================================================
+# LAB 07 — STATİK PV/PVC İLE DEPLOYMENT
+# =============================================================================
+# Konu:
+#   Bu Deployment 'k8s-playground-pvc' adlı PVC'yi /data altına mount eder.
+#   PVC arkasında elle oluşturulmuş bir 'local' tipi PV var (bkz. pv.yaml).
+#
+#   Local PV nodeAffinity ile node1'e bağlı olduğu için Pod da otomatik
+#   olarak node1'e schedule edilir — bizim nodeSelector vermemize gerek yok.
+#   Bu, 'hostPath' örneğine kıyasla önemli bir avantajdır: scheduler PV'nin
+#   topology'sini bilir.
+#
+#   replicas: 1 + strategy: Recreate → RWO PVC olduğu için kritik.
+#   Aksi halde rolling update sırasında ikinci Pod 'MultiAttachError' alır.
+#
+# Uygula:
+#   kubectl apply -f pv.yaml
+#   kubectl apply -f pvc.yaml
+#   kubectl apply -f deployment-pv.yaml
+#
+# Doğrula:
+#   kubectl -n cahit get pod -l app=staticpv-demo -o wide
+#   # NODE = node1 (PV nodeAffinity nedeniyle)
+#   kubectl get pv k8s-playground-pv
+#   # STATUS = Bound, CLAIM = cahit/k8s-playground-pvc
+#
+# Test akışı:
+#   1) /Storage sayfasından dosya yükleyin:
+#      kubectl -n cahit port-forward deploy/staticpv-demo 8080:8080
+#      # http://localhost:8080/Storage
+#
+#   2) Pod'u silin → veri PV'de kalır:
+#      kubectl -n cahit delete pod -l app=staticpv-demo
+#      kubectl -n cahit get pod -l app=staticpv-demo -w
+#      kubectl -n cahit exec deploy/staticpv-demo -- ls -la /data/uploads
+#
+#   3) Reclaim policy testi (DİKKATLİ):
+#      kubectl -n cahit delete -f deployment-pv.yaml
+#      kubectl -n cahit delete -f pvc.yaml
+#      kubectl get pv k8s-playground-pv
+#      # STATUS = Released  → veri hâlâ node1:/mnt/k8s-playground/pv-data altında.
+#      # PV'yi yeniden kullanılabilir hale getirmek için 'spec.claimRef' alanını
+#      # silin (kubectl edit pv k8s-playground-pv) → STATUS = Available olur.
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: staticpv-demo
+  namespace: cahit
+  labels:
+    app: staticpv-demo
+    lab: "07-volume-pvc"
+    example: static-pv
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate             # RWO PVC: aynı anda iki Pod aynı volume'u bağlayamaz
+  selector:
+    matchLabels:
+      app: staticpv-demo
+  template:
+    metadata:
+      labels:
+        app: staticpv-demo
+    spec:
+      # nodeSelector vermiyoruz; PV'nin nodeAffinity'si scheduler'a node1
+      # bilgisini zaten veriyor. Bu, statik 'local' PV'nin temel kazancıdır.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        fsGroupChangePolicy: OnRootMismatch
+
+      containers:
+        - name: web
+          image: docker.io/cahityusuf/k8s-playground:v1.0.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+
+          readinessProbe:
+            httpGet: { path: /healthz/ready, port: http }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /healthz/live, port: http }
+            periodSeconds: 10
+            timeoutSeconds: 2
+
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "96Mi"
+            limits:
+              cpu: "300m"
+              memory: "192Mi"
+
+          volumeMounts:
+            - name: data
+              mountPath: /data         # uygulamanın /Storage altında kullandığı dizin
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: k8s-playground-pvc   # pvc.yaml içindeki PVC adı

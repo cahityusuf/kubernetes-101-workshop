@@ -1,0 +1,42 @@
+# =============================================================================
+# LAB 07 — STATİK PV İÇİN PVC
+# =============================================================================
+# Konu:
+#   Bu PVC, dinamik provisioning yapmadan; yöneticinin önceden oluşturduğu
+#   PV'ye (pv.yaml) bağlanır. Eşleşme şu kriterlerle olur:
+#     1) storageClassName eşit ("manual")
+#     2) accessModes uyumlu (ReadWriteOnce)
+#     3) İstenen capacity <= PV.capacity
+#     4) Etiket selector (varsa) eşleşir
+#
+# Önemli ayrıntılar:
+#   - storageClassName: "manual" → Bu sınıfta bir StorageClass YOK; bu sayede
+#     dinamik provisioner devreye girmez. PVC, eşleşen bir PV bulamazsa
+#     'Pending' kalır.
+#   - storageClassName: ""        → "hiçbir storage class kullanma" demek.
+#                                    Default SC olsa bile devreye girmez.
+#                                    Bu örnek için "manual" tercih edildi
+#                                    çünkü PV ile birebir eşleşme görselliği
+#                                    daha öğretici.
+#
+# Uygula:
+#   kubectl apply -f pv.yaml          # önce PV
+#   kubectl apply -f pvc.yaml         # sonra PVC
+#   kubectl get pv,pvc -n cahit
+#   # PVC STATUS = Bound, PV CLAIM = cahit/k8s-playground-pvc
+# =============================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: k8s-playground-pvc
+  namespace: cahit
+  labels:
+    lab: "07-volume-pvc"
+    example: static-pv
+spec:
+  storageClassName: manual          # dinamik provisioning'i devre dışı bırak
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi                  # PV.capacity <= 1Gi ile eşleşmeli

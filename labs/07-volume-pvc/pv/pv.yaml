@@ -1,0 +1,66 @@
+# =============================================================================
+# LAB 07 — STATİK PERSISTENT VOLUME (local volume + nodeAffinity)
+# =============================================================================
+# Konu:
+#   Bu manifest, cluster yöneticisi tarafından MANUEL oluşturulan bir
+#   PersistentVolume tanımlar (static provisioning). Karşılık gelen PVC
+#   (pvc.yaml) bu PV'ye name-by-name değil; capacity + accessModes +
+#   storageClassName eşleşmesi ile bind olur.
+#
+# Neden 'local' tipi (hostPath değil)?
+#   - 'local' volume, Kubernetes scheduler'a node bilgisini açıkça verir
+#     (nodeAffinity zorunludur). Böylece bu PV'yi kullanan Pod yalnızca
+#     belirtilen node'a schedule edilir → 'MultiAttachError' veya yanlış
+#     node'da boş data senaryoları yaşanmaz.
+#   - hostPath PV ise scheduler için "saydam"dır; Pod başka node'a düşse
+#     bile bind olur ve veri kayıpmış gibi görünür.
+#   - Üretimde local volume için 'local-volume-provisioner' (Sig-Storage)
+#     veya CSI sürücüleri tercih edilir; burada öğretim amaçlı elle yazıyoruz.
+#
+# storageClassName: "manual"
+#   - Bu isimde bir StorageClass olmasına gerek YOK. PVC tarafında da aynı
+#     ismi yazarak dinamik provisioning'i devre dışı bırakıyoruz
+#     (provisioner çalışmaz, PV'yi biz oluşturduğumuz için).
+#
+# persistentVolumeReclaimPolicy: Retain
+#   - PVC silinse bile PV ve içindeki veri korunur ('Released' duruma geçer).
+#   - Yeniden kullanım için admin manuel müdahale eder (PV'yi temizleyip
+#     'Available' yapmak gibi). Üretimde veri güvenliği için 'Retain'
+#     genelde tercih edilir; 'Delete' dinamik provisioning'e mantıklıdır.
+#
+# Önkoşul:
+#   Local volume için node üzerinde dizin önceden açık olmalı:
+#     ssh root@<node1-ip>
+#     sudo mkdir -p /mnt/k8s-playground/pv-data
+#     sudo chown 10001:10001 /mnt/k8s-playground/pv-data
+#     sudo chmod 0775 /mnt/k8s-playground/pv-data
+#
+# Uygula:
+#   kubectl apply -f pv.yaml
+#   kubectl get pv k8s-playground-pv
+# =============================================================================
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: k8s-playground-pv
+  labels:
+    lab: "07-volume-pvc"
+    example: static-pv
+spec:
+  capacity:
+    storage: 1Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual        # PVC aynı sınıf adıyla istek atacak
+  local:
+    path: /mnt/k8s-playground/pv-data   # node üzerinde önceden mkdir edilmeli
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - node1               # PV yalnızca node1'in diskine bağlı
