@@ -46,7 +46,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: staticpv-demo
-  namespace: cahit
+  namespace: storage
   labels:
     app: staticpv-demo
     lab: "07-volume-pvc"

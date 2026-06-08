@@ -29,7 +29,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: k8s-playground-pvc
-  namespace: cahit
+  namespace: storage
   labels:
     lab: "07-volume-pvc"
     example: static-pv

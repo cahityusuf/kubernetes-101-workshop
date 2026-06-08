@@ -63,7 +63,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: hostpath-demo
-  namespace: cahit
+  namespace: storage
   labels:
     app: hostpath-demo
     lab: "07-volume-pvc"
@@ -82,19 +82,13 @@ spec:
     spec:
       # hostPath demoda hep AYNI node'a düşmesi için node sabitlemesi.
       # Üretimde bu kalıbı DaemonSet ile birlikte düşünmek gerekir.
-      nodeSelector:
-        kubernetes.io/hostname: node1
+      #nodeSelector:
+      #  kubernetes.io/hostname: node1
 
       # hostPath, root tarafından oluşturulur (UID 0). Image içindeki uygulama
       # UID 10001 ile çalıştığı için /data altına yazabilmesi adına fsGroup
       # ile dizinin group ownership'ini 10001'e ayarlıyoruz. Bu, Pod ayağa
       # kalkarken kubelet tarafından chown -R yapılmasını tetikler.
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 10001
-        runAsGroup: 10001
-        fsGroup: 10001
-        fsGroupChangePolicy: OnRootMismatch
 
       containers:
         - name: web
@@ -123,11 +117,6 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data          # uygulama burayı /Storage altında kullanıyor
-
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: ["ALL"]
 
       volumes:
         - name: data

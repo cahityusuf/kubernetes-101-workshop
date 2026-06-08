@@ -38,7 +38,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: pvc-demo
-  namespace: cahit
+  namespace: storage
   labels:
     app: pvc-demo
     lab: "07-volume-pvc"

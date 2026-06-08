@@ -55,7 +55,8 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   storageClassName: manual        # PVC aynı sınıf adıyla istek atacak
   local:
-    path: /mnt/k8s-playground/pv-data   # node üzerinde önceden mkdir edilmeli
+    path: /mnt/k8s-playground/pv-data 
+      # node üzerinde önceden mkdir edilmeli
   nodeAffinity:
     required:
       nodeSelectorTerms:
@@ -63,4 +64,4 @@ spec:
             - key: kubernetes.io/hostname
               operator: In
               values:
-                - node1               # PV yalnızca node1'in diskine bağlı
+                - master1               # PV yalnızca node1'in diskine bağlı
