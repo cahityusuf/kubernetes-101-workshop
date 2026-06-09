@@ -54,6 +54,14 @@ spec:
           ports:
             - name: http
               containerPort: 8080
-          envFrom:
-            - configMapRef:
-                name: configmap-test
+          env:
+          - name: USERNAME
+            valueFrom:
+              configMapKeyRef:
+                name: k8s-test-cm
+                key: USERNAME
+          - name: PASSWORD
+            valueFrom:
+              configMapKeyRef:
+                name: k8s-test-cm
+                key: PASSWORD
