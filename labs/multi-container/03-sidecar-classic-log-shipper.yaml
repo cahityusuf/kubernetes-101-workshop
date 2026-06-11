@@ -1,0 +1,31 @@
+# Klasik sidecar: ana ile paralel çalışan yardımcı konteyner.
+# Burada 'app' /var/log/app.log'a yazar, 'log-shipper' aynı dosyayı tail eder.
+# Üretimde fluent-bit/promtail/filebeat olur.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sidecar-classic
+  labels:
+    demo: multi-container
+spec:
+  containers:
+  - name: app
+    image: busybox:1.36
+    command:
+    - sh
+    - -c
+    - |
+      while true; do
+        echo "$(date -u +%FT%TZ) - app log #$RANDOM" >> /var/log/app.log
+        sleep 2
+      done
+    volumeMounts:
+    - { name: logs, mountPath: /var/log }
+  - name: log-shipper
+    image: busybox:1.36
+    command: ["sh", "-c", "tail -F /var/log/app.log"]
+    volumeMounts:
+    - { name: logs, mountPath: /var/log }
+  volumes:
+  - { name: logs, emptyDir: {} }

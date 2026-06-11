@@ -1,0 +1,39 @@
+# Native sidecar (K8s 1.28 beta, 1.29+ stable)
+# initContainers listesinde tanımlanır AMA 'restartPolicy: Always' ile.
+# Bu sayede:
+#   1) Sidecar ana konteynerlerden ÖNCE başlar (ilk logları kaçırmaz).
+#   2) Ana çalıştığı sürece çalışır.
+#   3) Ana exit ettiğinde sidecar gracefully kapanır → Job/CronJob ile uyumlu.
+#
+# K8s sürümünüz 1.28+ değilse '03-sidecar-classic-log-shipper.yaml' örneğini kullanın.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sidecar-native
+  labels:
+    demo: multi-container
+spec:
+  initContainers:
+  - name: log-shipper
+    image: busybox:1.36
+    restartPolicy: Always           # ← bu satır onu sidecar yapar
+    command: ["sh", "-c", "tail -F /var/log/app.log"]
+    volumeMounts:
+    - { name: logs, mountPath: /var/log }
+  containers:
+  - name: app
+    image: busybox:1.36
+    command:
+    - sh
+    - -c
+    - |
+      # Sidecar zaten tail başlatmış olacak — ilk satırı kaçırmaz
+      for i in $(seq 1 1000); do
+        echo "$(date -u +%FT%TZ) - native sidecar test #$i" >> /var/log/app.log
+        sleep 2
+      done
+    volumeMounts:
+    - { name: logs, mountPath: /var/log }
+  volumes:
+  - { name: logs, emptyDir: {} }

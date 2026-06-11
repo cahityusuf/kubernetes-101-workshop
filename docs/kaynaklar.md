@@ -5,18 +5,21 @@ Bu rehber kursta öğrendiklerinin üstüne nereye gidebileceğini gösterir.
 ## Repo İçindeki İleri Konu Örnekleri
 
 Kurs ana modülleri (Pod → Ingress) tamamlandıktan sonra incelenmek üzere
-`docs/` altında ileri konular için README + YAML setleri vardır:
+`labs/` altında ileri konular için README + YAML setleri vardır:
 
-- **`docs/serviceaccount/`** — ServiceAccount, Role/RoleBinding, ClusterRole,
+- **`labs/multi-container/`** — Init container, klasik vs native sidecar
+  (1.28+ restartPolicy: Always), ambassador (proxy), adapter (format
+  dönüşümü), shareProcessNamespace ile PID paylaşımı.
+- **`labs/serviceaccount/`** — ServiceAccount, Role/RoleBinding, ClusterRole,
   RBAC ile API erişimi testi.
-- **`docs/securitycontext/`** — runAsNonRoot, readOnlyRootFilesystem,
+- **`labs/securitycontext/`** — runAsNonRoot, readOnlyRootFilesystem,
   capabilities drop, fsGroup, seccomp; Pod Security Standards bağlantısı.
-- **`docs/networkpolicy/`** — Default-deny ingress/egress, podSelector ve
+- **`labs/networkpolicy/`** — Default-deny ingress/egress, podSelector ve
   namespaceSelector ile L3/L4 firewall, DNS istisnası.
-- **`docs/taint-toleration/`** — Node taint effect'leri (NoSchedule,
+- **`labs/taint-toleration/`** — Node taint effect'leri (NoSchedule,
   PreferNoSchedule, NoExecute), toleration eşleşmesi, tolerationSeconds,
   DaemonSet için "tolerate all" kalıbı.
-- **`docs/nodeaffinity/`** — nodeSelector (legacy), nodeAffinity (required
+- **`labs/nodeaffinity/`** — nodeSelector (legacy), nodeAffinity (required
   vs preferred), podAffinity/AntiAffinity ile birlikte yerleşim,
   topologySpreadConstraints ile eşit dağılım.
 

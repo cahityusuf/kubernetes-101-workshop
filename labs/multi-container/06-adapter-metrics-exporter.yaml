@@ -1,0 +1,71 @@
+# Adapter deseni: ana konteyner kendi formatında çıktı verir; adapter konteyner
+# bu çıktıyı standart bir formata (Prometheus, OTLP, JSON) dönüştürür.
+#
+# Burada 'legacy-app' her saniye custom format log yazar; 'metrics-adapter'
+# log'u parse edip /metrics endpoint'inden Prometheus formatında sunar.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: adapter-demo
+  labels:
+    demo: multi-container
+spec:
+  containers:
+  - name: legacy-app
+    image: busybox:1.36
+    command:
+    - sh
+    - -c
+    - |
+      while true; do
+        REQ=$((RANDOM % 100))
+        ERR=$((RANDOM % 10))
+        echo "REQUESTS=$REQ ERRORS=$ERR" >> /shared/app.log
+        sleep 1
+      done
+    volumeMounts:
+    - { name: shared, mountPath: /shared }
+
+  - name: metrics-adapter
+    image: busybox:1.36
+    command:
+    - sh
+    - -c
+    - |
+      # Basit "exporter": son satırı okuyup Prometheus formatında dosyaya yaz
+      while true; do
+        LINE=$(tail -1 /shared/app.log 2>/dev/null || echo "REQUESTS=0 ERRORS=0")
+        R=$(echo $LINE | sed -n 's/.*REQUESTS=\([0-9]*\).*/\1/p')
+        E=$(echo $LINE | sed -n 's/.*ERRORS=\([0-9]*\).*/\1/p')
+        cat > /shared/metrics.prom <<EOF
+      # HELP app_requests_total Toplam istek
+      # TYPE app_requests_total counter
+      app_requests_total $R
+      # HELP app_errors_total Toplam hata
+      # TYPE app_errors_total counter
+      app_errors_total $E
+      EOF
+        sleep 1
+      done
+    volumeMounts:
+    - { name: shared, mountPath: /shared }
+
+  - name: metrics-server
+    image: busybox:1.36
+    command:
+    - sh
+    - -c
+    - |
+      # Basit HTTP server — /metrics endpoint'i
+      while true; do
+        { echo -ne "HTTP/1.0 200 OK\r\nContent-Type: text/plain\r\n\r\n"; \
+          cat /shared/metrics.prom; } | nc -l -p 9090 -q 1
+      done
+    ports:
+    - containerPort: 9090
+    volumeMounts:
+    - { name: shared, mountPath: /shared }
+
+  volumes:
+  - { name: shared, emptyDir: {} }

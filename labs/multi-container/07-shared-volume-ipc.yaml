@@ -1,0 +1,54 @@
+# Üç konteyner: yazıcı, okuyucu, izleyici. Hepsi aynı volume'ü paylaşır.
+# Ek olarak 'shareProcessNamespace: true' ile her konteyner diğerinin
+# process'lerini görebilir (ps aux ile test edilir).
+#
+# Bu örnek "konteynerler arası iletişim" demosu için tasarlandı.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: shared-pod
+  labels:
+    demo: multi-container
+spec:
+  shareProcessNamespace: true       # PID ns paylaşımı (default false)
+  containers:
+  - name: writer
+    image: busybox:1.36
+    command:
+    - sh
+    - -c
+    - |
+      i=0
+      while true; do
+        i=$((i+1))
+        echo "$(date -u +%T) - writer mesajı #$i" >> /shared/feed.log
+        sleep 2
+      done
+    volumeMounts:
+    - { name: shared, mountPath: /shared }
+
+  - name: reader
+    image: busybox:1.36
+    command: ["sh", "-c", "tail -F /shared/feed.log"]
+    volumeMounts:
+    - { name: shared, mountPath: /shared }
+
+  - name: inspector
+    image: busybox:1.36
+    command:
+    - sh
+    - -c
+    - |
+      # shareProcessNamespace açık olduğu için diğer konteynerlerin
+      # process'lerini de görür
+      while true; do
+        echo "===== ps =====" ; ps aux | head -10
+        echo "===== ls /shared =====" ; ls -la /shared
+        sleep 30
+      done
+    volumeMounts:
+    - { name: shared, mountPath: /shared }
+
+  volumes:
+  - { name: shared, emptyDir: {} }

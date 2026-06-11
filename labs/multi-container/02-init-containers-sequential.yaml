@@ -1,0 +1,52 @@
+# Birden çok init container — listede yazılan SIRADA çalışır.
+# Her biri tamamlanmadan diğeri başlamaz. Birinde fail → tüm Pod restart.
+#
+# Senaryo: hazırlık (config indir) → migration → ana app.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sequential-init
+  labels:
+    demo: multi-container
+spec:
+  initContainers:
+  - name: step-1
+    image: busybox:1.36
+    command:
+    - sh
+    - -c
+    - |
+      echo "[step-1] config dosyası hazırlanıyor..."
+      mkdir -p /workdir
+      echo "version=1.0" > /workdir/app.conf
+      sleep 3
+      echo "[step-1] tamamlandı."
+    volumeMounts:
+    - { name: workdir, mountPath: /workdir }
+  - name: step-2
+    image: busybox:1.36
+    command:
+    - sh
+    - -c
+    - |
+      echo "[step-2] DB migration simülasyonu..."
+      [ -f /workdir/app.conf ] || (echo "config yok!"; exit 1)
+      sleep 3
+      echo "[step-2] tamamlandı."
+    volumeMounts:
+    - { name: workdir, mountPath: /workdir }
+  containers:
+  - name: app
+    image: busybox:1.36
+    command:
+    - sh
+    - -c
+    - |
+      echo "[app] başladı."
+      cat /workdir/app.conf
+      sleep 3600
+    volumeMounts:
+    - { name: workdir, mountPath: /workdir }
+  volumes:
+  - { name: workdir, emptyDir: {} }

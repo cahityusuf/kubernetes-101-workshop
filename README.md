@@ -6,25 +6,33 @@
 
 ```
 .
-├── docs/                     Eğitmen dokümantasyonu, sınav ve ileri konu örnekleri
+├── docs/                     Eğitmen dokümantasyonu ve sınav
 │   ├── mufredat.pdf            38 sayfa — modül modül detaylı eğitmen rehberi
 │   ├── on-degerlendirme-sinavi.pdf   10 soru + cevap anahtarı + seviye yorumlama
-│   ├── kaynaklar.md            Kurs sonrası okuma listesi, sertifikasyon
-│   ├── serviceaccount/         İleri konu — SA, Role/RoleBinding, ClusterRole, RBAC test
-│   ├── securitycontext/        İleri konu — runAsNonRoot, readOnlyRootFS, capabilities, fsGroup
-│   ├── networkpolicy/          İleri konu — deny-all, label/namespace selector, egress DNS
-│   ├── taint-toleration/       İleri konu — taint effect'leri, toleration, NoExecute, DaemonSet
-│   └── nodeaffinity/           İleri konu — required/preferred, podAffinity, topologySpread
+│   └── kaynaklar.md            Kurs sonrası okuma listesi, sertifikasyon
 │
-├── labs/                     8 hands-on lab — her klasör kendi başına çalıştırılır
-│   ├── 01-pod/                 Pod yaratma, sidecar, lifecycle
-│   ├── 02-deployment/          RS self-healing, rolling update, rollback
-│   ├── 03-service/             ClusterIP, NodePort, DNS, endpoints
-│   ├── 04-configmap-secret/    env + volume mount, canlı tazeleme
-│   ├── 05-volume-pvc/          emptyDir vs PVC kalıcılık karşılaştırması
-│   ├── 06-probes/              startup + liveness + readiness davranışı
-│   ├── 07-ingress/             path-based + host-based routing
-│   └── 08-kapanis-projesi/     Tüm konuları birleştir + 5 hata enjeksiyonu
+├── labs/                     Hands-on lab klasörleri — her klasör kendi başına çalıştırılır
+│   │                           — Temel modüller (numaralı) —
+│   ├── 01-namespace/           Namespace tanımı + label/selector
+│   ├── 02-pod/                 Pod yaratma, sidecar, lifecycle
+│   ├── 03-replicaset/          Self-healing
+│   ├── 04-deployment/          Rolling update, rollback
+│   ├── 05-service/             ClusterIP, NodePort, DNS, endpoints
+│   ├── 06-configmap-secret/    env + volume mount, canlı tazeleme
+│   ├── 07-volume-pvc/          emptyDir vs PVC kalıcılık karşılaştırması
+│   ├── 08-probes/              Startup probe + liveness davranışı
+│   ├── 09-readiness-probes/    Readiness toggle, endpoint listesi
+│   ├── 10-resource-limit-request-limit/   requests/limits, OOMKilled, throttle
+│   ├── 11-ingress/             path-based + host-based routing
+│   ├── 12-hpa/                 HorizontalPodAutoscaler
+│   ├── 13-kapanis-projesi/     Tüm konuları birleştir + 5 hata enjeksiyonu
+│   │                           — İleri konular —
+│   ├── multi-container/        İleri — init, sidecar (klasik+native), ambassador, adapter
+│   ├── networkpolicy/          İleri — deny-all, label/namespace selector, egress DNS
+│   ├── nodeaffinity/           İleri — required/preferred, podAffinity, topologySpread
+│   ├── securitycontext/        İleri — runAsNonRoot, readOnlyRootFS, capabilities, fsGroup
+│   ├── serviceaccount/         İleri — SA, Role/RoleBinding, ClusterRole, RBAC test
+│   └── taint-toleration/       İleri — taint effect'leri, toleration, NoExecute, DaemonSet
 │
 ├── playground-app/           .NET 8 MVC test uygulaması (her K8s konusu için bir sayfa)
 │   ├── src/                    ASP.NET Core MVC kaynak kodu

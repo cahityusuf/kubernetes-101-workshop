@@ -1,0 +1,56 @@
+# Ambassador deseni: uygulama 'localhost:PORT'a bağlanır;
+# proxy konteyner gerçek hedefi soyutlar (cluster, sharding, TLS, retries).
+#
+# Bu örnekte 'app' http://localhost:8000'e GET atar; 'ambassador' (nginx) bu
+# isteği gerçek bir backend'e (httpbin.org) yönlendirir.
+#
+# Gerçek dünyada: Envoy/HAProxy ile Redis cluster, mTLS sertifikası, vs.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ambassador-nginx-conf
+data:
+  nginx.conf: |
+    events { worker_connections 1024; }
+    http {
+      resolver 8.8.8.8 valid=30s ipv6=off;
+      server {
+        listen 8000;
+        location / {
+          proxy_pass https://httpbin.org/anything;
+          proxy_ssl_server_name on;
+        }
+      }
+    }
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ambassador-demo
+  labels:
+    demo: multi-container
+spec:
+  containers:
+  - name: app
+    image: curlimages/curl:8.10.1
+    command:
+    - sh
+    - -c
+    - |
+      sleep 5   # ambassador hazır olsun diye basit bekleme
+      while true; do
+        echo "----- istek atılıyor -----"
+        curl -s http://localhost:8000/ | head -10 || true
+        sleep 10
+      done
+  - name: ambassador
+    image: nginx:1.27-alpine
+    ports:
+    - containerPort: 8000
+    volumeMounts:
+    - { name: cfg, mountPath: /etc/nginx/nginx.conf, subPath: nginx.conf }
+  volumes:
+  - name: cfg
+    configMap:
+      name: ambassador-nginx-conf

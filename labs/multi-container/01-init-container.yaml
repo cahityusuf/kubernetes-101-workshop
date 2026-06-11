@@ -1,0 +1,30 @@
+# Init container — ana konteyner başlamadan önce çalışıp tamamlanır.
+# Klasik kullanım: dış servis hazır olana kadar bekle.
+#
+# Bu örnekte 'db' Service'i çözülene kadar bekler. Service yoksa Pod sonsuza
+# kadar Init:0/1 durumunda kalır — kubectl get pods init-demo -w ile gözleyin.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: init-demo
+  labels:
+    demo: multi-container
+spec:
+  initContainers:
+  - name: wait-for-db
+    image: busybox:1.36
+    command:
+    - sh
+    - -c
+    - |
+      echo "[init] DB Service'i bekleniyor..."
+      until nslookup db.default.svc.cluster.local > /dev/null 2>&1; do
+        echo "  henüz yok, 2 sn bekle..."
+        sleep 2
+      done
+      echo "[init] DB bulundu, ana konteyner başlayabilir."
+  containers:
+  - name: app
+    image: busybox:1.36
+    command: ["sh", "-c", "echo 'Ana uygulama başladı'; sleep 3600"]
