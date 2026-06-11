@@ -1,0 +1,35 @@
+# podAntiAffinity: aynı uygulamanın replikalarını AYRI Node'lara dağıtmak.
+# Üretim için kritik: tek Node arızasında tüm replikaların düşmemesi.
+#
+# Burada hard kural kullanıldı (required). Soft varyant için preferredDuringScheduling
+# ve weight kullanın.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-ha
+  labels:
+    app: web-ha
+    demo: nodeaffinity
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web-ha
+  template:
+    metadata:
+      labels:
+        app: web-ha
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: web-ha
+            topologyKey: kubernetes.io/hostname    # her replika AYRI Node'a
+      containers:
+      - name: web
+        image: nginx:1.27
+        ports:
+        - containerPort: 80

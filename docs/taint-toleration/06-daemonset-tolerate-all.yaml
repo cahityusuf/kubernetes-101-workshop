@@ -1,0 +1,30 @@
+# DaemonSet: her Node'da TAM 1 Pod çalıştırır.
+# Sistem-seviyesi servisler için tipik: log shipper, node exporter, network agent.
+#
+# Control plane taint'i (node-role.kubernetes.io/control-plane:NoSchedule) dahil
+# tüm taint'leri tolere ederek her Node'a yerleşmesi sağlanır.
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: log-agent
+  labels:
+    app: log-agent
+spec:
+  selector:
+    matchLabels:
+      app: log-agent
+  template:
+    metadata:
+      labels:
+        app: log-agent
+    spec:
+      tolerations:
+      - operator: "Exists"          # her key, her value, her effect
+      containers:
+      - name: agent
+        image: busybox:1.36
+        command: ["sh", "-c", "while true; do echo 'tick'; sleep 30; done"]
+        resources:
+          requests: { cpu: "10m", memory: "16Mi" }
+          limits:   { cpu: "50m", memory: "64Mi" }

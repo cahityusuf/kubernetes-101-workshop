@@ -1,0 +1,25 @@
+# podAffinity: bir Pod'u başka bir Pod ile aynı topoloji birimine (aynı Node, aynı zone)
+# yerleştirmek için. Tipik kullanım: cache ile uygulamayı birlikte tutmak — latency.
+#
+# topologyKey 'kubernetes.io/hostname' → aynı NODE
+# topologyKey 'topology.kubernetes.io/zone' → aynı ZONE
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+    demo: nodeaffinity
+spec:
+  affinity:
+    podAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app: backend
+        topologyKey: kubernetes.io/hostname    # backend ile aynı Node'a
+  containers:
+  - name: app
+    image: busybox:1.36
+    command: ["sh", "-c", "sleep 3600"]

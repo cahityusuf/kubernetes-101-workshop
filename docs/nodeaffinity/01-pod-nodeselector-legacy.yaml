@@ -1,0 +1,17 @@
+# Legacy yöntem — nodeSelector.
+# Tüm anahtar=değer çiftleri AND'lenir; eşleşmezse Pod Pending kalır.
+# Modern alternatif: nodeAffinity (02-pod-nodeaffinity-required.yaml).
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: legacy-selector
+  labels:
+    demo: nodeaffinity
+spec:
+  nodeSelector:
+    disk: ssd                       # Node'da disk=ssd label'ı OLMAK ZORUNDA
+  containers:
+  - name: app
+    image: busybox:1.36
+    command: ["sh", "-c", "sleep 3600"]

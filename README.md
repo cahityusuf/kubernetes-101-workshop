@@ -12,7 +12,9 @@
 │   ├── kaynaklar.md            Kurs sonrası okuma listesi, sertifikasyon
 │   ├── serviceaccount/         İleri konu — SA, Role/RoleBinding, ClusterRole, RBAC test
 │   ├── securitycontext/        İleri konu — runAsNonRoot, readOnlyRootFS, capabilities, fsGroup
-│   └── networkpolicy/          İleri konu — deny-all, label/namespace selector, egress DNS
+│   ├── networkpolicy/          İleri konu — deny-all, label/namespace selector, egress DNS
+│   ├── taint-toleration/       İleri konu — taint effect'leri, toleration, NoExecute, DaemonSet
+│   └── nodeaffinity/           İleri konu — required/preferred, podAffinity, topologySpread
 │
 ├── labs/                     8 hands-on lab — her klasör kendi başına çalıştırılır
 │   ├── 01-pod/                 Pod yaratma, sidecar, lifecycle

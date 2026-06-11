@@ -1,0 +1,46 @@
+# topologySpreadConstraints (1.18+): podAntiAffinity'nin modern, esnek alternatifi.
+# Pod'ları belirli bir topoloji ekseninde EŞİT dağıtır.
+#
+#   maxSkew         → toleranslı dağılımsızlık miktarı
+#   topologyKey     → hangi ekseden bakacağız (Node, Zone, Region)
+#   whenUnsatisfiable: DoNotSchedule  → hard kural, eşleşmezse Pending
+#                      ScheduleAnyway → soft kural
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spread-demo
+  labels:
+    app: spread-demo
+    demo: nodeaffinity
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: spread-demo
+  template:
+    metadata:
+      labels:
+        app: spread-demo
+    spec:
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: spread-demo
+      # Bulutta zone-bazlı dağılım için ikinci bir constraint:
+      # - maxSkew: 1
+      #   topologyKey: topology.kubernetes.io/zone
+      #   whenUnsatisfiable: ScheduleAnyway
+      #   labelSelector:
+      #     matchLabels:
+      #       app: spread-demo
+      containers:
+      - name: web
+        image: nginx:1.27
+        ports:
+        - containerPort: 80
+        resources:
+          requests: { cpu: "10m", memory: "32Mi" }

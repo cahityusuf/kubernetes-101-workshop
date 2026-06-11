@@ -1,0 +1,18 @@
+# "Her şeyi tolere et" — DaemonSet ve sistem Pod'ları için klasik kalıp.
+# key, value YAZILMAZ; operator: Exists tüm taint'lere eşleşir.
+# effect de boş bırakılırsa her 3 effect'i (NoSchedule, PreferNoSchedule, NoExecute)
+# birden tolere eder.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: tolerate-all
+  labels:
+    demo: taint-toleration
+spec:
+  tolerations:
+  - operator: "Exists"            # her key, her value, her effect
+  containers:
+  - name: app
+    image: busybox:1.36
+    command: ["sh", "-c", "sleep 3600"]

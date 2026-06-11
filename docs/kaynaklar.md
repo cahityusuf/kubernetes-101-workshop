@@ -13,6 +13,12 @@ Kurs ana modülleri (Pod → Ingress) tamamlandıktan sonra incelenmek üzere
   capabilities drop, fsGroup, seccomp; Pod Security Standards bağlantısı.
 - **`docs/networkpolicy/`** — Default-deny ingress/egress, podSelector ve
   namespaceSelector ile L3/L4 firewall, DNS istisnası.
+- **`docs/taint-toleration/`** — Node taint effect'leri (NoSchedule,
+  PreferNoSchedule, NoExecute), toleration eşleşmesi, tolerationSeconds,
+  DaemonSet için "tolerate all" kalıbı.
+- **`docs/nodeaffinity/`** — nodeSelector (legacy), nodeAffinity (required
+  vs preferred), podAffinity/AntiAffinity ile birlikte yerleşim,
+  topologySpreadConstraints ile eşit dağılım.
 
 Her klasörde adım adım çalıştırma talimatı ve beklenen çıktı vardır.
 

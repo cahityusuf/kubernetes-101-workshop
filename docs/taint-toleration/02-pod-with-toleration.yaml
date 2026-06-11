@@ -1,0 +1,26 @@
+# Eşleşen toleration: key + value + effect üçünün de TAM eşleşmesi gerekir
+# (operator: Equal default).
+#
+# Bu Pod artık 'workload=gpu:NoSchedule' taint'li Node'a gidebilir.
+# Garanti değil — scheduler hâlâ herhangi bir Node seçebilir.
+# Gönderilmesi GEREKİYORSA aşağıdaki nodeSelector'ı da etkinleştirin
+# (nodeaffinity klasöründeki örneklerle birlikte kullanın).
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: tolerated-pod
+  labels:
+    demo: taint-toleration
+spec:
+  tolerations:
+  - key: "workload"
+    operator: "Equal"
+    value: "gpu"
+    effect: "NoSchedule"
+  # nodeSelector:                  # opsiyonel — Pod'u GERÇEKTEN m02'ye göndermek için
+  #   kubernetes.io/hostname: minikube-m02
+  containers:
+  - name: app
+    image: busybox:1.36
+    command: ["sh", "-c", "sleep 3600"]

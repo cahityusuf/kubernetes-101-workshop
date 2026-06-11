@@ -1,0 +1,25 @@
+# Hard rule: required... blok'u eşleşmezse Pod schedule edilmez (Pending).
+# Birden çok değer için 'In' operatörü pratik: disk SSD ya da NVMe olsun gibi.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hard-rule
+  labels:
+    demo: nodeaffinity
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: disk
+            operator: In
+            values: ["ssd", "nvme"]
+          - key: kubernetes.io/os    # ek AND koşulu
+            operator: In
+            values: ["linux"]
+  containers:
+  - name: app
+    image: busybox:1.36
+    command: ["sh", "-c", "sleep 3600"]
