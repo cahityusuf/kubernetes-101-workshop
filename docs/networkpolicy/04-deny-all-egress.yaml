@@ -1,0 +1,16 @@
+# backend Pod'unun TÜM çıkış trafiğini engeller (DNS dahil!).
+# Tipik kullanım: yalnızca explicit allow edilen yerlere izin ver.
+# UYARI: Bu uygulanınca backend hiçbir yere gidemez, DNS bile çözülmez.
+# 05-allow-egress-dns.yaml ile DNS için istisna eklenir.
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-egress-backend
+spec:
+  podSelector:
+    matchLabels:
+      tier: backend
+  policyTypes:
+  - Egress
+  # egress: []  # implicit deny

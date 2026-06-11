@@ -1,0 +1,29 @@
+# readOnlyRootFilesystem: true → / yazılamaz hâle gelir.
+# Çoğu uygulama /tmp veya /var/cache gibi dizinlere yazmak ister; bu yüzden
+# bu tür dizinleri emptyDir volume ile yazılabilir bırakırız.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: readonly-pod
+  labels:
+    demo: securitycontext
+spec:
+  containers:
+  - name: app
+    image: busybox:1.36
+    command: ["sh", "-c", "sleep 3600"]
+    securityContext:
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 10001
+      runAsGroup: 10001
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+    volumeMounts:
+    - { name: tmp,      mountPath: /tmp }
+    - { name: var-run,  mountPath: /var/run }
+  volumes:
+  - { name: tmp,     emptyDir: {} }
+  - { name: var-run, emptyDir: {} }

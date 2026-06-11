@@ -1,0 +1,28 @@
+# seccomp (Secure Computing Mode): konteynerin yapabileceği Linux syscall'larını filtreler.
+# 3 tip:
+#   - Unconfined          → filtre yok (default!)
+#   - RuntimeDefault      → containerd/CRI-O'nun verdiği güvenli default profil
+#   - Localhost           → /var/lib/kubelet/seccomp/ altındaki özel JSON profil
+#
+# Restricted Pod Security Standard 'RuntimeDefault' veya 'Localhost' bekler.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: seccomp-pod
+  labels:
+    demo: securitycontext
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+  - name: app
+    image: busybox:1.36
+    command: ["sh", "-c", "sleep 3600"]
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]

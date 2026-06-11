@@ -6,10 +6,13 @@
 
 ```
 .
-├── docs/                     Eğitmen dokümantasyonu ve sınav (PDF)
+├── docs/                     Eğitmen dokümantasyonu, sınav ve ileri konu örnekleri
 │   ├── mufredat.pdf            38 sayfa — modül modül detaylı eğitmen rehberi
 │   ├── on-degerlendirme-sinavi.pdf   10 soru + cevap anahtarı + seviye yorumlama
-│   └── kaynaklar.md            Kurs sonrası okuma listesi, sertifikasyon
+│   ├── kaynaklar.md            Kurs sonrası okuma listesi, sertifikasyon
+│   ├── serviceaccount/         İleri konu — SA, Role/RoleBinding, ClusterRole, RBAC test
+│   ├── securitycontext/        İleri konu — runAsNonRoot, readOnlyRootFS, capabilities, fsGroup
+│   └── networkpolicy/          İleri konu — deny-all, label/namespace selector, egress DNS
 │
 ├── labs/                     8 hands-on lab — her klasör kendi başına çalıştırılır
 │   ├── 01-pod/                 Pod yaratma, sidecar, lifecycle

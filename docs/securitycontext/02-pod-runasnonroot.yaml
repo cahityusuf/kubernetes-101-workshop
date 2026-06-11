@@ -1,0 +1,36 @@
+# runAsNonRoot: true → konteyner UID 0 ile başlamak isterse Pod CreateContainerError verir.
+# Burada nginx default'ta root olarak başlamak ister; Pod başlatılamaz.
+# Bu DEMO BAŞARISIZLIK için tasarlandı — kursiyer mesajı görüp anlamlandırmalı.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nonroot-pod
+  labels:
+    demo: securitycontext
+spec:
+  securityContext:           # Pod seviyesi — tüm konteynerlere uygulanır
+    runAsNonRoot: true
+  containers:
+  - name: web
+    image: nginx:1.27
+    ports:
+    - containerPort: 80
+---
+# Karşılaştırma: nginx-unprivileged image'ı UID 101 ile çalışır, başarılı olmalı.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nonroot-pod-ok
+  labels:
+    demo: securitycontext
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 101
+    runAsGroup: 101
+  containers:
+  - name: web
+    image: nginxinc/nginx-unprivileged:1.27
+    ports:
+    - containerPort: 8080

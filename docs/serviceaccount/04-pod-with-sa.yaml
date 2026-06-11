@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sa-demo
+  labels:
+    app: sa-demo
+spec:
+  serviceAccountName: reader-sa
+  # automountServiceAccountToken: false   # token'sız çalıştırmak için
+  containers:
+  - name: shell
+    image: curlimages/curl:8.10.1
+    command: ["sh", "-c", "sleep 3600"]
+    # İçeriden test için ortam değişkenleri
+    env:
+    - name: APISERVER
+      value: "https://kubernetes.default.svc"
+    - name: TOKEN_PATH
+      value: "/var/run/secrets/kubernetes.io/serviceaccount/token"
+    - name: CA_PATH
+      value: "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"

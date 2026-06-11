@@ -1,0 +1,32 @@
+# DNS istisnası: backend kube-system namespace'indeki CoreDNS Pod'larına
+# UDP/TCP 53'ten erişebilir. Bu ekleme yapılmazsa hiçbir hostname çözülmez
+# ve uygulama Service'lere bile erişemez.
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-dns-backend
+spec:
+  podSelector:
+    matchLabels:
+      tier: backend
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - { protocol: UDP, port: 53 }
+    - { protocol: TCP, port: 53 }
+  # backend → db için ayrı egress kuralı:
+  - to:
+    - podSelector:
+        matchLabels:
+          tier: db
+    ports:
+    - { protocol: TCP, port: 5678 }

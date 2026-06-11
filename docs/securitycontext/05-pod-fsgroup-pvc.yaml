@@ -1,0 +1,40 @@
+# fsGroup: bir GID belirler; Pod'a mount edilen tüm volume'lerin grup sahibi bu olur
+# ve grup yazma izni eklenir. Bu sayede runAsUser != root olsa bile Pod volume'e yazabilir.
+#
+# Önemli: fsGroup volume'deki tüm dosyaların chown'unu tetikler — büyük volume'lerde yavaş
+# olabilir. fsGroupChangePolicy: "OnRootMismatch" (1.20+) bu maliyeti azaltır.
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-fsgroup
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 100Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fsgroup-pod
+  labels:
+    demo: securitycontext
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 2000                       # PVC'nin grup sahibi 2000 olur
+    fsGroupChangePolicy: "OnRootMismatch"
+  containers:
+  - name: app
+    image: busybox:1.36
+    command: ["sh", "-c", "sleep 3600"]
+    volumeMounts:
+    - name: data
+      mountPath: /data
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: data-fsgroup

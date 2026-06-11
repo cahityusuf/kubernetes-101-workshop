@@ -2,6 +2,21 @@
 
 Bu rehber kursta öğrendiklerinin üstüne nereye gidebileceğini gösterir.
 
+## Repo İçindeki İleri Konu Örnekleri
+
+Kurs ana modülleri (Pod → Ingress) tamamlandıktan sonra incelenmek üzere
+`docs/` altında ileri konular için README + YAML setleri vardır:
+
+- **`docs/serviceaccount/`** — ServiceAccount, Role/RoleBinding, ClusterRole,
+  RBAC ile API erişimi testi.
+- **`docs/securitycontext/`** — runAsNonRoot, readOnlyRootFilesystem,
+  capabilities drop, fsGroup, seccomp; Pod Security Standards bağlantısı.
+- **`docs/networkpolicy/`** — Default-deny ingress/egress, podSelector ve
+  namespaceSelector ile L3/L4 firewall, DNS istisnası.
+
+Her klasörde adım adım çalıştırma talimatı ve beklenen çıktı vardır.
+
+
 ## Resmî Kaynaklar
 
 - **Kubernetes Dokümantasyonu** — https://kubernetes.io/docs/

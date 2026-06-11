@@ -1,0 +1,26 @@
+# Capabilities — Linux'taki "süper kullanıcı" yetkilerini parçalara böler.
+# Default'ta konteyner runtime birkaç tanesini açık tutar (NET_BIND_SERVICE,
+# CHOWN, NET_RAW, ...). Üretimde önerilen pattern:
+#   1) ALL düşür
+#   2) Yalnız gerekli olanı ekle
+#
+# Örnek: NET_BIND_SERVICE eklenirse non-root kullanıcı bile 80 portuna bağlanabilir.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: capdrop-pod
+  labels:
+    demo: securitycontext
+spec:
+  containers:
+  - name: app
+    image: busybox:1.36
+    command: ["sh", "-c", "sleep 3600"]
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 10001
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+        add:  ["NET_BIND_SERVICE"]

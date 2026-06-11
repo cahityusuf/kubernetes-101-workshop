@@ -1,0 +1,34 @@
+# Namespace-tabanlı policy: backend Pod'una sadece 'tier=trusted' etiketli
+# namespace'lerden erişime izin verir.
+#
+# Hazırlık:
+#   kubectl create namespace dev
+#   kubectl label namespace dev tier=trusted
+#
+# Test:
+#   kubectl run -n dev probe --rm -it --image=curlimages/curl:8.10.1 -- \
+#     curl --max-time 3 http://backend.default.svc.cluster.local
+#   # OK
+#
+#   kubectl create namespace untrusted
+#   kubectl run -n untrusted probe --rm -it --image=curlimages/curl:8.10.1 -- \
+#     curl --max-time 3 http://backend.default.svc.cluster.local
+#   # timeout
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-from-trusted-namespace
+spec:
+  podSelector:
+    matchLabels:
+      tier: backend
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          tier: trusted
+    ports:
+    - { protocol: TCP, port: 5678 }

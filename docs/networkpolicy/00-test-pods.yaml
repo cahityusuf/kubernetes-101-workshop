@@ -1,0 +1,80 @@
+# Lab için 4 Pod + 2 Service.
+# Tüm tier label'ları farklı; NetworkPolicy'lerin selector mantığını net göstermek için.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: frontend
+  labels:
+    app: web
+    tier: frontend
+spec:
+  containers:
+  - name: app
+    image: curlimages/curl:8.10.1
+    command: ["sh", "-c", "sleep 3600"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: backend
+  labels:
+    app: api
+    tier: backend
+spec:
+  containers:
+  - name: app
+    image: hashicorp/http-echo:1.0
+    args: ["-text=hello from BACKEND"]
+    ports:
+    - containerPort: 5678
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: db
+  labels:
+    app: db
+    tier: db
+spec:
+  containers:
+  - name: app
+    image: hashicorp/http-echo:1.0
+    args: ["-text=DB DATA", "-listen=:5678"]
+    ports:
+    - containerPort: 5678
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: attacker
+  labels:
+    app: attacker
+    tier: untrusted
+spec:
+  containers:
+  - name: app
+    image: curlimages/curl:8.10.1
+    command: ["sh", "-c", "sleep 3600"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  selector:
+    tier: backend
+  ports:
+  - port: 80
+    targetPort: 5678
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+spec:
+  selector:
+    tier: db
+  ports:
+  - port: 80
+    targetPort: 5678

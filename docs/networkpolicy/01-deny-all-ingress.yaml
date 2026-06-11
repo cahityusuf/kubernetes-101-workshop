@@ -1,0 +1,15 @@
+# Deny-all ingress: backend ve db Pod'larına gelen TÜM trafiği reddeder.
+# podSelector boş kalsa namespace'teki TÜM Pod'ları seçerdi — burada tier ile sınırlı.
+# policyTypes: [Ingress] + boş 'ingress' kuralı = "hiçbir kaynaktan kabul etme"
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-ingress-backend-db
+spec:
+  podSelector:
+    matchExpressions:
+    - { key: tier, operator: In, values: ["backend", "db"] }
+  policyTypes:
+  - Ingress
+  # ingress: []   # implicit deny
