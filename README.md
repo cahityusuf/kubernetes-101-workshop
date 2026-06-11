@@ -12,7 +12,7 @@
 │   └── kaynaklar.md            Kurs sonrası okuma listesi, sertifikasyon
 │
 ├── labs/                     Hands-on lab klasörleri — her klasör kendi başına çalıştırılır
-│   │                           — Temel modüller (numaralı) —
+│   │                           — Temel müfredat (01-12) —
 │   ├── 01-namespace/           Namespace tanımı + label/selector
 │   ├── 02-pod/                 Pod yaratma, sidecar, lifecycle
 │   ├── 03-replicaset/          Self-healing
@@ -25,14 +25,15 @@
 │   ├── 10-resource-limit-request-limit/   requests/limits, OOMKilled, throttle
 │   ├── 11-ingress/             path-based + host-based routing
 │   ├── 12-hpa/                 HorizontalPodAutoscaler
-│   ├── 13-kapanis-projesi/     Tüm konuları birleştir + 5 hata enjeksiyonu
-│   │                           — İleri konular —
-│   ├── multi-container/        İleri — init, sidecar (klasik+native), ambassador, adapter
-│   ├── networkpolicy/          İleri — deny-all, label/namespace selector, egress DNS
-│   ├── nodeaffinity/           İleri — required/preferred, podAffinity, topologySpread
-│   ├── securitycontext/        İleri — runAsNonRoot, readOnlyRootFS, capabilities, fsGroup
-│   ├── serviceaccount/         İleri — SA, Role/RoleBinding, ClusterRole, RBAC test
-│   └── taint-toleration/       İleri — taint effect'leri, toleration, NoExecute, DaemonSet
+│   │                           — İleri konular (13-18) —
+│   ├── 13-multi-container/     Init, sidecar (klasik+native), ambassador, adapter
+│   ├── 14-serviceaccount/      SA, Role/RoleBinding, ClusterRole, RBAC test
+│   ├── 15-securitycontext/     runAsNonRoot, readOnlyRootFS, capabilities, fsGroup
+│   ├── 16-networkpolicy/       Deny-all, label/namespace selector, egress DNS
+│   ├── 17-taint-toleration/    Taint effect'leri, toleration, NoExecute, DaemonSet
+│   ├── 18-nodeaffinity/        required/preferred, podAffinity, topologySpread
+│   │                           — Kapanış —
+│   └── 19-kapanis-projesi/     Tüm konuları birleştir + 5 hata enjeksiyonu
 │
 ├── playground-app/           .NET 8 MVC test uygulaması (her K8s konusu için bir sayfa)
 │   ├── src/                    ASP.NET Core MVC kaynak kodu
