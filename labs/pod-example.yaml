@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: nginx-yaml-test
+  name: nginx-yaml-test
+  namespace: prod
+spec:
+  containers:
+  - image: nginx:1.26
+    name: nginx-yaml-test
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}

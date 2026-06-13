@@ -48,14 +48,15 @@ spec:
           ports:
             - name: http
               containerPort: 8080
-          env:
-          - name: USERNAME_ENV
-            valueFrom:
-              secretKeyRef:
-                name: k8s-secret
-                key: USERNAME
-          - name: PASSWORD_ENV
-            valueFrom:
-              secretKeyRef:
-                name: k8s-secret
-                key: PASSWORD
+          # --- ENV: tek tek değer + envFrom ile toplu enjeksiyon -------------
+          # --- VOLUME: ConfigMap + Secret dosya olarak -----------------------
+          # Uygulama /etc/k8s-config ve /etc/k8s-secret yollarını okur (default).
+          volumeMounts:
+            - name: cm-vol
+              mountPath: /etc/k8s-config
+              readOnly: true
+
+      volumes:
+        - name: cm-vol
+          configMap:
+            name: k8s-config-file             # sadece sahibi okur (rw,r,r olmasın)

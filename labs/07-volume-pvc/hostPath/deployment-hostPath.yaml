@@ -116,7 +116,7 @@ spec:
 
           volumeMounts:
             - name: data
-              mountPath: /data          # uygulama burayı /Storage altında kullanıyor
+              mountPath: /app/data          # uygulama burayı /Storage altında kullanıyor
 
       volumes:
         - name: data

@@ -1,18 +1,18 @@
   apiVersion: networking.k8s.io/v1
   kind: Ingress
   metadata:
-    name: k8s-playground-ingressss
-    namespace: svc-test
+    name: k8s-playground-ingres
+    namespace: cahit
   spec:
     ingressClassName: nginx
     rules:
-      - host: k8s.aselsan.com
+      - host: cahit.aselsan.com
         http:
           paths:
             - pathType: Prefix
               backend:
                 service:
-                  name: k8s-test
+                  name: playground-svc
                   port:
-                    number: 80
+                    number: 8082
               path: /
